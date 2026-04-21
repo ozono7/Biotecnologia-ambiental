@@ -1,0 +1,22 @@
+# 1. Cargar la librería
+install.packages("ggplo2")
+
+library(ggplot2)
+
+# 2. Crear datos 
+datos <- data.frame(
+  dia = 1:7,
+  altura = c(2, 3.5, 4.2, 6.1, 8.5, 11.2, 15.0)
+)
+
+# 3. Construir el gráfico
+ggplot(data = datos, aes(x = dia, y = altura)) +
+  geom_line(color = "#DDA0DD", size = 1) +
+  geom_point(color = "#6495ED", size = 3) +
+  labs(
+    title = "Curva de crecimiento",
+    subtitle = "Seguimiento de altura de una planta",
+    x = "Día de observación",
+    y = "Altura (cm)"
+  ) +
+  theme_minimal()
