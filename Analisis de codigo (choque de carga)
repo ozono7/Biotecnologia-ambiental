@@ -1,0 +1,80 @@
+# 1. PARÁMETROS DEL MODELO ------------------------------------------------
+library(ggplot2)
+
+tiempo_total <- 100
+paso         <- 0.1
+momentos     <- seq(0, tiempo_total, by = paso)
+
+# Parámetros cinéticos
+u_max      <- 0.2      # Tasa máxima de crecimiento específico (h^-1)
+Ks         <- 30       # Constante de semisaturación (mg/L)
+muerte     <- 0.05     # Tasa de decaimiento (h^-1)
+eficiencia <- 0.6      # Rendimiento celular (Y)
+dilucion   <- 0.1      # Tasa de dilución del sustrato (h^-1)
+
+# 2. SIMULACIÓN NUMÉRICA --------------------------------------------------
+n <- length(momentos)
+sustrato <- numeric(n)
+biomasa  <- numeric(n)
+
+# Condiciones iniciales
+sustrato[1] <- 15
+biomasa[1]  <- 50
+
+for (i in 1:(n - 1)) {
+  # Cambio de carga orgánica en t = 30
+  entrada <- ifelse(momentos[i] < 30, 100, 150)
+  
+  # Modelo 
+  crecimiento <- (u_max * sustrato[i]) / (Ks + sustrato[i])
+  
+  # Balance de masa (Ecuaciones diferenciales)
+  dS <- (dilucion * (entrada - sustrato[i]) - (crecimiento * biomasa[i] / eficiencia)) * paso
+  dB <- (crecimiento - muerte) * biomasa[i] * paso
+  
+  sustrato[i+1] <- sustrato[i] + dS
+  biomasa[i+1]  <- biomasa[i] + dB
+}
+
+# 3. VISUALIZACIÓN --------------------------------------------
+df <- data.frame(Tiempo = momentos, Sustrato = sustrato, Biomasa = biomasa)
+
+# Factor de escala para el eje secundario (Biomasa suele ser mayor)
+mult_factor <- 5 
+
+ggplot(df, aes(x = Tiempo)) +
+  # Curva de Sustrato (Eje Principal)
+  geom_line(aes(y = Sustrato, color = "Sustrato"), size = 1.2) +
+  
+  # Curva de Biomasa (Escalada para el Eje secundario)
+  geom_line(aes(y = Biomasa / mult_factor, color = "Biomasa"), size = 1.2) +
+  
+  # Configuración de Ejes
+  scale_y_continuous(
+    name = "Sustrato (mg/L)",
+    sec.axis = sec_axis(~.*mult_factor, name = "Biomasa (mg/L)")
+  ) +
+  
+  # Delimitación técnica de fases
+  geom_vline(xintercept = 30, linetype = "dashed", color = "grey50", alpha = 0.7) +
+  annotate("text", x = 15, y = max(df$Sustrato) * 1.1, label = "Estado estacionario", size = 3) +
+  annotate("text", x = 65, y = max(df$Sustrato) * 1.1, label = "Respuesta a transitorio", size = 3) +
+  
+  # Estética y colores
+  scale_color_manual(values = c("Sustrato" = "#2C3E50", "Biomasa" = "#27AE60")) +
+  labs(
+    title = "Cinética de biopelícula: Balance de masa y crecimiento",
+    subtitle = "Simulación con cambio de carga en t=30h",
+    x = "Tiempo de operación (h)",
+    color = "Variable"
+  ) +
+  
+  # Refinamiento del Tema
+  theme_bw() + 
+  theme(
+    legend.position = "bottom",
+    plot.title = element_text(face = "bold", size = 14),
+    panel.grid.minor = element_blank(),
+    axis.title.y.right = element_text(color = "#27AE60"),
+    axis.title.y.left = element_text(color = "#2C3E50")
+  )
