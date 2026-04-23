@@ -1,0 +1,36 @@
+Comparación de reactores para el Tratamiento de Aguas Residuales
+
+Planteamiento del Problema
+Una industria alimentaria debe procesar un caudal de 1,000 metros cúbicos por día de agua residual con una demanda bioquímica de oxígeno inicial de 500 miligramos por litro. La normativa exige que el agua de salida tenga una concentración máxima de 5 miligramos por litro. El sistema se inicia con una inoculación constante de biomasa activa de 50 miligramos de sólidos volátiles por litro.
+
+Parámetros Cinéticos:
+
+Tasa máxima de utilización específica (q): 10 por día
+
+Constante de afinidad (K): 20 miligramos por litro
+
+Rendimiento celular (Y): 0.5 miligramos de biomasa por miligramo de oxígeno
+
+Decaimiento: Despreciable (0)
+
+Modelos Matemáticos
+
+Para los cálculos, utilice las siguientes ecuaciones basadas en balances de masa:
+
+1. Reactor de Flujo Tapón o Reactor por Lotes:
+Tiempo = (1 / q) · [ ((K / (Biomasa inicial + Y · Sustrato inicial)) + (1 / Y)) · ln((Biomasa inicial + Y · (Sustrato inicial - Sustrato final)) / Biomasa inicial) - (K / (Biomasa inicial + Y · Sustrato inicial)) · ln(Sustrato final / Sustrato inicial) ]
+
+2. Reactor Continuo de Mezcla Completa:
+Tiempo = [ (Sustrato inicial - Sustrato final) · (K + Sustrato final) ] / [ q · Sustrato final · (Biomasa inicial + Y · (Sustrato inicial - Sustrato final)) ]
+
+Instrucciones 
+
+Resolver en R usando ggplot. Discutir el comportamiento y:
+
+Cálculo de Diseño: Determine el tiempo de retención (en días) y el volumen requerido (en metros cúbicos) para un Reactor de Flujo Tapón y para un Reactor de Mezcla Completa.
+
+Análisis de Eficiencia: Explique por qué el volumen del reactor de mezcla completa es drásticamente mayor al del flujo tapón cuando se busca una eficiencia de remoción del 99%.
+
+Teoría de Reactores: Justifique por qué un reactor que opera por lotes se comporta matemáticamente igual a un reactor de flujo tapón en estado estacionario.
+
+Sensibilidad del Diseño: Si la norma de descarga fuera menos estricta (por ejemplo, 100 miligramos por litro), ¿qué sucedería con la diferencia de tamaños entre ambos reactores? Argumente su respuesta.
