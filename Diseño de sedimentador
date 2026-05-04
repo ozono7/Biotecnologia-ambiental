@@ -1,0 +1,93 @@
+# ==============================================================================
+# DISEÑO Y ANÁLISIS DE SEDIMENTADOR SECUNDARIO 
+# ==============================================================================
+
+# 1. PARÁMETROS OPERATIVOS Y DE DISEÑO
+Q  <- 10000      # Caudal de entrada de agua residual (m3/d)
+Qr <- 5000       # Caudal de recirculación de lodos (m3/d)
+X  <- 3.0        # Concentración de Sólidos Suspendidos en el licor mezcla (kg/m3 o g/L)
+A  <- 600        # Área superficial del sedimentador (m2)
+
+# Parámetros de sedimentación del lodo (Lodo de buena sedimentación)
+v0 <- 150        # Velocidad máxima de sedimentación teórica (m/d)
+k  <- 0.15       # Coeficiente de compactación del lodo (m3/kg)
+
+# 2. CÁLCULOS HIDRÁULICOS Y DE FLUJO
+overflow_rate <- Q / A                 # Tasa de desbordamiento (m/d)
+u_underflow   <- Qr / A                # Velocidad del flujo inferior o succión (m/d)
+G_in          <- overflow_rate * X     # Flujo de sólidos hacia el efluente (kg/m2-d)
+G_T           <- (Q + Qr) * X / A      # Flujo total de sólidos aplicados (kg/m2-d)
+X_u           <- G_T / u_underflow     # Concentración de lodo en el fondo (kg/m3)
+
+# Mostrar resultados en consola
+cat("--- RESULTADOS DEL DISEÑO DEL SEDIMENTADOR ---\n")
+cat(sprintf("Tasa de desbordamiento (Overflow): %.2f m/d\n", overflow_rate))
+cat(sprintf("Flujo de sólidos total aplicado: %.2f kg/m2-d\n", G_T))
+cat(sprintf("Concentración de lodo espesado (Fondo): %.2f kg/m3\n", X_u))
+
+# 3. GRÁFICA 1: ANÁLISIS DE PUNTO DE ESTADO (CINÉTICA)
+par(mfrow=c(1,1), mar=c(5,5,4,2))
+X_seq <- seq(0, 20, by = 0.1)
+
+# Curva de flujo de sedimentación por gravedad
+G_s <- v0 * exp(-k * X_seq) * X_seq 
+
+plot(X_seq, G_s, type = "l", lwd = 3, col = "blue",
+     xlab = expression("Concentración de sólidos (" * X[b] * ") [kg/m"^3 * "]"),
+     ylab = "Flujo de sólidos [kg/m2-d]",
+     main = "Análisis de punto de estado (State-Point Analysis)",
+     ylim = c(0, max(G_s, G_T) + 20))
+
+# Línea de desbordamiento (Overflow line)
+lines(X_seq, overflow_rate * X_seq, lty = 2, lwd = 2, col = "gray50")
+
+# Dibujar el Punto de Estado
+points(X, G_in, pch = 19, col = "red", cex = 2)
+text(X, G_in + 15, "Punto de estado", font = 2, col = "red")
+
+# Línea de flujo inferior (Underflow line)
+lines(c(0, X_u), c(G_T, 0), lwd = 2, col = "darkgreen")
+text(X_u, 10, sprintf("X_u = %.1f", X_u), col = "darkgreen", pos = 3, font=2)
+text(2, G_T + 5, sprintf("Flujo Total = %.1f", G_T), col = "darkgreen", pos = 4)
+
+# 4. GRÁFICA 2: DIBUJO DEL SEDIMENTADOR
+# Abrimos una nueva ventana gráfica o pausamos (en RStudio se verá en la pestaña Plots)
+dev.new() # Crear nueva ventana para el esquema
+par(mar=c(1,1,3,1))
+plot(c(0, 100), c(0, 60), type = "n", axes = FALSE, xlab = "", ylab = "",
+     main = "Esquema Estructural del Sedimentador Circular")
+
+# Fondo cónico del tanque
+polygon(c(10, 45, 55, 90), c(15, 0, 0, 15), col = "gray80", lwd = 3)
+
+# Paredes laterales
+rect(10, 15, 90, 50, col = "aliceblue", lwd = 3)
+
+# Manto de lodos (Sludge blanket)
+polygon(c(10, 45, 55, 90, 90, 10), c(15, 0, 0, 15, 25, 25), col = "tan4")
+
+# Agua clarificada
+rect(10, 25, 90, 48, col = adjustcolor("cadetblue1", alpha.f = 0.6), border=NA)
+
+# Cilindro de alimentación central (Center well)
+rect(40, 30, 60, 55, col = "gray60", lwd = 2)
+
+# Vertederos perimetrales (Weirs)
+rect(5, 45, 10, 50, col = "steelblue", lwd=2)
+rect(90, 45, 95, 50, col = "steelblue", lwd=2)
+
+# Flechas y etiquetas
+arrows(50, 60, 50, 50, lwd = 3, col = "black", length = 0.15)
+text(50, 58, "Alimentación (Q + Qr)", font = 2, pos = 4)
+
+text(50, 12, "Manto de lodos", col = "white", font = 2, cex = 1.2)
+
+arrows(50, 0, 50, -5, lwd = 3, col = "darkred", length = 0.15)
+text(50, 3, "Extracción de lodo (Qu)", font = 2, col = "black", pos = 4)
+
+text(25, 38, "Zona de clarificación\n(Baja turbidez)", font = 2, col = "darkblue")
+
+arrows(10, 48, 2, 48, lwd = 2, col = "blue", length = 0.1)
+arrows(90, 48, 98, 48, lwd = 2, col = "blue", length = 0.1)
+text(5, 52, "Efluente (Qe)", font = 2, col = "blue")
+text(95, 52, "Efluente (Qe)", font = 2, col = "blue")
