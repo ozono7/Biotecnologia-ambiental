@@ -1,0 +1,97 @@
+# ==============================================================================
+# IMPACTO DE VERTIDOS TÓXICOS EN PROCESADO DE ALIMENTOS
+# ==============================================================================
+
+# 1. PREPARACIÓN DE ENTORNO
+# ------------------------------------------------------------------------------
+if (!require("pacman")) install.packages("pacman")
+pacman::p_load(ggplot2, dplyr, showtext, patchwork)
+
+font_add_google("Inter", "modern_sans")
+showtext_auto()
+
+#La estabilidad del sistema de lodos activados en una planta procesadora de 
+#alimentos se ve amenazada por una descarga accidental de amonios cuaternarios 
+#utilizados en la desinfección de líneas. Un sedimentador de 650 m² debe 
+#gestionar la biomasa bajo 4 condiciones críticas de toxicidad:
+#1) Operación de Régimen: Flujo de 12,000 m³/d con recirculación de 6,000 m³/d 
+#y biomasa de 3.2 kg/m³. El lodo presenta excelente salud (k=0.15).
+#2) Fase de Inhibición Inicial: El ingreso del tóxico altera la estructura del 
+#flóculo, elevando el coeficiente de compactación a k=0.26, manteniendo los 
+#flujos constantes pero reduciendo la velocidad de caída.
+#3) Colapso por Bulking Químico (Colapso): La persistencia del tóxico eleva k a 0.40 y 
+#la concentración de sólidos a 5.5 kg/m³ debido a la muerte celular masiva, 
+#superando los límites físicos de transporte.
+#4) Protocolo de Rescate: Se reduce el flujo de entrada a 8,000 m³/d y se 
+#incrementa drásticamente la recirculación a 14,000 m³/d para forzar la 
+#evacuación de sólidos y evitar el vertido al receptor.
+#Si el flujo total de sólidos excede la capacidad de transporte, se producirá 
+#una pérdida masiva de biomasa y el incumplimiento de la normativa ambiental.
+#Explique el comportamiento operativo ante estos eventos de toxicidad.
+
+# 2. PARÁMETROS
+# ------------------------------------------------------------------------------
+A  <- 650         # Área (m2)
+v0 <- 140         # Velocidad máxima (m/d)
+
+escenarios_alimentos <- data.frame(
+  ID = 1:4,
+  Estado = c("Régimen", "Inhibición", "Colapso", "Rescate"),
+  Q  = c(12000, 12000, 12000, 8000),
+  Qr = c(6000,  6000,  6000,  14000),
+  X  = c(3.2,   3.2,   5.5,   4.5),
+  k  = c(0.15,  0.26,  0.40,  0.40)
+)
+
+# 3. FUNCIÓN DE CÁLCULO Y GRAFICACIÓN
+# ------------------------------------------------------------------------------
+crear_grafico_spa <- function(datos) {
+  # Ecuaciones 
+  OR  <- datos$Q / A                      
+  u   <- datos$Qr / A                     
+  Gi  <- OR * datos$X                     
+  Gt  <- (datos$Q + datos$Qr) * datos$X / A 
+  Xu  <- Gt / u                           
+  
+  # Curva de Vesilind específica
+  df_curva <- data.frame(Xb = seq(0, 25, length.out = 300)) %>%
+    mutate(Gs = v0 * exp(-datos$k * Xb) * Xb)
+  
+  ggplot(df_curva, aes(x = Xb, y = Gs)) +
+    geom_area(fill = "#8e44ad", alpha = 0.1) + # Tinte púrpura (tóxico/químico)
+    geom_line(color = "#2c3e50", linewidth = 1) +
+    # Línea de transporte
+    annotate("segment", x = 0, y = Gt, xend = Xu, yend = 0, color = "#d35400", linewidth = 0.8) +
+    # Línea de desbordamiento
+    geom_abline(intercept = 0, slope = OR, linetype = "dashed", color = "#7f8c8d") +
+    # Punto de estado
+    annotate("point", x = datos$X, y = Gi, size = 3, shape = 21, fill = "#c0392b", color = "white") +
+    labs(
+      title = paste("Fase", datos$ID, ":", datos$Estado),
+      subtitle = sprintf("X:%.1f | k:%.2f | Gt:%.1f | Xu:%.1f", datos$X, datos$k, Gt, Xu),
+      x = "Conc (kg/m³)", y = "Flujo (kg/m²·d)"
+    ) +
+    theme_minimal(base_family = "modern_sans") +
+    theme(
+      plot.title = element_text(size = 10, face = "bold", color = "#4b0082"),
+      axis.title = element_text(size = 7, face = "bold"),
+      panel.background = element_rect(fill = "#fdfaff", color = NA)
+    )
+}
+
+# 4. GENERACIÓN DE OBJETOS
+# ------------------------------------------------------------------------------
+g1 <- crear_grafico_spa(escenarios_alimentos[1,])
+g2 <- crear_grafico_spa(escenarios_alimentos[2,])
+g3 <- crear_grafico_spa(escenarios_alimentos[3,])
+g4 <- crear_grafico_spa(escenarios_alimentos[4,])
+
+# 5. RENDERIZADO FINAL
+# ------------------------------------------------------------------------------
+(g1 | g2) / (g3 | g4) + 
+  plot_annotation(
+    title = 'DINÁMICA DE FALLA POR TOXICIDAD EN PLANTA DE ALIMENTOS',
+    subtitle = 'Análisis de Puntos de Estado bajo estrés por amonios cuaternarios',
+    theme = theme(plot.title = element_text(size = 14, face = "bold", hjust = 0.5))
+  )
+
