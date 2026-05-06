@@ -1,0 +1,99 @@
+# ==============================================================================
+# PLANTA DE PROCESADOS CÁRNICOS
+# ==============================================================================
+
+# 1. PREPARACIÓN DE ENTORNO
+# ------------------------------------------------------------------------------
+if (!require("pacman")) install.packages("pacman")
+pacman::p_load(ggplot2, dplyr, showtext, patchwork)
+
+font_add_google("Inter", "modern_sans")
+showtext_auto()
+
+#La estabilidad del tratamiento de efluentes en una planta de productos cárnicos 
+#se ve alterada por una descarga masiva de grasas y desinfectantes químicos. 
+#Un sedimentador de 500 m² (diseño compacto) enfrenta 4 estados operativos 
+#con comportamientos físicos muy contrastantes:
+#1) Estado Basal: Flujo de 10,000 m³/d con una recirculación mínima de 2,000 m³/d. 
+#El lodo es pesado y sedimenta rápido (k=0.12, X=3.0 kg/m³).
+#2) Lavado de Sólidos (Washout): Se duplica el flujo de entrada a 20,000 m³/d por 
+#limpieza de planta, manteniendo la recirculación baja, lo que dispara la 
+#velocidad de desbordamiento.
+#3) Choque Químico y Bulking: El ingreso de desinfectantes reduce la velocidad 
+#de caída (v0 cae a 100 m/d) y aumenta k a 0.38, mientras la biomasa sube a 5.0 kg/m³.
+#4) Estrategia de Purga Extrema: Para evitar el colapso, se detiene parte de la 
+#producción (Q=5,000 m³/d) y se maximiza la recirculación a 15,000 m³/d para 
+#compactar el lodo residual.
+#Explique cómo varían los límites de transporte en estas 4 condiciones extremas.
+
+# 2. ESCENARIOS OPERATIVOS 
+# ------------------------------------------------------------------------------
+A  <- 500         # Área  pequeña 
+v0_base <- 160    # Lodo muy rápido en estado inicial
+v0_fall <- 90     # Lodo muy lento en estado de choque
+
+escenarios_carnicos <- data.frame(
+  ID = 1:4,
+  Estado = c("Basal (Estable)", "Lavado (Hidráulico)", "Choque (Cinético)", "Purga (Recuperación)"),
+  Q  = c(10000, 20000, 15000, 5000),
+  Qr = c(2000,  2000,  5000,  15000),
+  X  = c(3.0,   2.5,   5.0,   4.0),
+  k  = c(0.12,  0.15,  0.38,  0.30),
+  v0 = c(160,   160,   90,    110)
+)
+
+# 3. FUNCIÓN DE CÁLCULO Y GRAFICACIÓN
+# ------------------------------------------------------------------------------
+crear_grafico_spa <- function(datos) {
+  # Ecuaciones 
+  OR  <- datos$Q / A                      
+  u   <- datos$Qr / A                     
+  Gi  <- OR * datos$X                     
+  Gt  <- (datos$Q + datos$Qr) * datos$X / A 
+  Xu  <- Gt / u                           
+  
+  df_curva <- data.frame(Xb = seq(0, 25, length.out = 400)) %>%
+    mutate(Gs = datos$v0 * exp(-datos$k * Xb) * Xb)
+  
+  # Asignación de colores por estado para facilitar interpretación
+  color_fill <- switch(datos$ID, "#1abc9c", "#3498db", "#e74c3c", "#f1c40f")
+  color_line <- switch(datos$ID, "#16a085", "#2980b9", "#c0392b", "#f39c12")
+  
+  ggplot(df_curva, aes(x = Xb, y = Gs)) +
+    geom_area(fill = color_fill, alpha = 0.15) +
+    geom_line(color = color_line, linewidth = 1.2) +
+    # Línea de transporte con intercepto Gt y pendiente -u
+    annotate("segment", x = 0, y = Gt, xend = Xu, yend = 0, color = "#2c3e50", linewidth = 0.9) +
+    # Línea de desbordamiento (Dashed)
+    geom_abline(intercept = 0, slope = OR, linetype = "dotted", color = "#7f8c8d", linewidth = 0.7) +
+    # State Point
+    annotate("point", x = datos$X, y = Gi, size = 3.5, shape = 21, fill = color_line, color = "white") +
+    labs(
+      title = paste(datos$ID, "-", datos$Estado),
+      subtitle = sprintf("u: %.1f | OR: %.1f | Gt: %.1f", u, OR, Gt),
+      x = "X (kg/m³)", y = "G (kg/m²·d)"
+    ) +
+    theme_minimal(base_family = "modern_sans") +
+    theme(
+      plot.title = element_text(size = 10, face = "bold", color = color_line),
+      axis.title = element_text(size = 8, face = "bold"),
+      panel.grid.minor = element_blank(),
+      panel.background = element_rect(fill = "#fafafa", color = NA)
+    )
+}
+
+# 4. GENERACIÓN DE OBJETOS
+# ------------------------------------------------------------------------------
+g1 <- crear_grafico_spa(escenarios_carnicos[1,])
+g2 <- crear_grafico_spa(escenarios_carnicos[2,])
+g3 <- crear_grafico_spa(escenarios_carnicos[3,])
+g4 <- crear_grafico_spa(escenarios_carnicos[4,])
+
+# 5. RENDERIZADO FINAL
+# ------------------------------------------------------------------------------
+(g1 | g2) / (g3 | g4) + 
+  plot_annotation(
+    title = 'VARIABILIDAD OPERATIVA EN SEDIMENTACIÓN INDUSTRIAL',
+    subtitle = 'Comparativa de estados críticos: Hidráulicos vs. Cinéticos',
+    theme = theme(plot.title = element_text(size = 16, face = "bold", hjust = 0.5))
+  )
