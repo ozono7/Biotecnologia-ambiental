@@ -1,0 +1,92 @@
+# ==============================================================================
+# DINÁMICA DE ESTABILIDAD EN 4 ESTADOS CRÍTICOS
+# ==============================================================================
+
+# 1. PREPARACIÓN DE ENTORNO
+# ------------------------------------------------------------------------------
+if (!require("pacman")) install.packages("pacman")
+pacman::p_load(ggplot2, dplyr, showtext, patchwork)
+
+font_add_google("Inter", "modern_sans")
+showtext_auto()
+
+#La integridad de una cuenca fluvial se analiza a través de cuatro estados 
+#operativos críticos de un sedimentador de 800 m². El sistema debe enfrentar: 
+#1) Una operación basal de 15,000 m³/d con lodo granular (k=0.18). 
+#2) Un pico de carga orgánica al mediodía que eleva la biomasa a 4.5 kg/m³. 
+#3) El impacto de una tormenta extraordinaria que eleva el flujo a 25,000 m³/d 
+#y degrada la sedimentabilidad (k=0.25), reduciendo la succión a 4,000 m³/d. 
+#4) Una fase de recuperación post-tormenta donde se intenta purgar el exceso 
+#de sólidos incrementando la recirculación a 10,000 m³/d.
+#Si en cualquiera de estos estados el flujo total de sólidos excede la 
+#capacidad de transporte, se producirá un vertido masivo hacia el cuerpo 
+#receptor, provocando una eutrofización acelerada y un agotamiento severo 
+#del oxígeno disuelto que amenaza directamente la biodiversidad acuática.
+#Explique el comportamiento operativo en esta secuencia de 4 puntos de estado.
+
+# 2. PARÁMETROS
+# ------------------------------------------------------------------------------
+A <- 800
+v0 <- 140
+
+escenarios <- data.frame(
+  ID = 1:4,
+  Estado = c("Basal", "Pico Orgánico", "Tormenta", "Recuperación"),
+  Q  = c(15000, 15000, 25000, 18000),
+  Qr = c(7500,  7500,  4000,  10000),
+  X  = c(3.5,   4.5,   5.5,   4.0),
+  k  = c(0.18,  0.18,  0.25,  0.22)
+)
+
+# 3. FUNCIÓN PARA GENERAR CADA GRÁFICO DE PUNTO DE ESTADO
+# ------------------------------------------------------------------------------
+crear_grafico_spa <- function(datos) {
+  # Cálculos 
+  OR  <- datos$Q / A
+  u   <- datos$Qr / A
+  Gi  <- OR * datos$X
+  Gt  <- (datos$Q + datos$Qr) * datos$X / A
+  Xu  <- Gt / u
+  
+  # Curva de flujo gravitatorio específica del escenario
+  df_curva <- data.frame(Xb = seq(0, 25, length.out = 300)) %>%
+    mutate(Gs = v0 * exp(-datos$k * Xb) * Xb)
+  
+  ggplot(df_curva, aes(x = Xb, y = Gs)) +
+    geom_area(fill = "#2980b9", alpha = 0.1) +
+    geom_line(color = "#2c3e50", linewidth = 1) +
+    # Línea de transporte
+    annotate("segment", x = 0, y = Gt, xend = Xu, yend = 0, color = "#e67e22", linewidth = 0.8) +
+    # Línea de desbordamiento
+    geom_abline(intercept = 0, slope = OR, linetype = "dashed", color = "#7f8c8d") +
+    # Punto de estado
+    annotate("point", x = datos$X, y = Gi, size = 3, shape = 21, fill = "#e74c3c", color = "white") +
+    labs(
+      title = paste(datos$ID, "-", datos$Estado),
+      subtitle = sprintf("Q:%s | k:%s | Gt:%.1f", datos$Q, datos$k, Gt),
+      x = "Conc (kg/m³)", y = "Flujo"
+    ) +
+    theme_minimal(base_family = "modern_sans") +
+    theme(
+      plot.title = element_text(size = 10, face = "bold"),
+      plot.subtitle = element_text(size = 8),
+      axis.title = element_text(size = 7)
+    )
+}
+
+# 4. GENERACIÓN DE LOS 4 OBJETOS
+# ------------------------------------------------------------------------------
+g1 <- crear_grafico_spa(escenarios[1,])
+g2 <- crear_grafico_spa(escenarios[2,])
+g3 <- crear_grafico_spa(escenarios[3,])
+g4 <- crear_grafico_spa(escenarios[4,])
+
+# 5. RENDERIZADO (DISTRIBUCIÓN 2x2)
+# ------------------------------------------------------------------------------
+(g1 | g2) / (g3 | g4) + 
+  plot_annotation(
+    title = 'ANÁLISIS TEMPORAL DE PUNTO DE ESTADO',
+    subtitle = 'Evaluación de la resiliencia del sedimentador ante eventos dinámicos',
+    theme = theme(plot.title = element_text(size = 16, face = "bold", hjust = 0.5))
+  )
+
