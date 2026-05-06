@@ -1,0 +1,34 @@
+# ==============================================================================
+# FALLA DE SEDIMENTACIÓN POR INGRESO DE DESINFECTANTES (PLANTA DE ALIMENTOS)
+# ==============================================================================
+
+#La eficiencia del sistema de lodos activados de una planta procesadora de 
+#alimentos se ve comprometida por el ingreso accidental de una carga elevada 
+#de desinfectantes clorados. El sedimentador de 800 m² debe gestionar la 
+#biomasa en 4 etapas críticas:
+#1) Operación Nominal: Flujo estable de 15,000 m³/d, recirculación de 7,500 m³/d 
+#y biomasa saludable con excelente sedimentabilidad (k=0.18, X=3.5 kg/m³).
+#2) Evento de Choque (Presencia de Tóxico): El desinfectante afecta el 
+#crecimiento biológico, aumentando el coeficiente de compactación a k=0.28, 
+#aunque los caudales permanecen sin cambios.
+#3) Saturación por Bulking: El estrés químico induce un crecimiento filamentoso 
+#severo (bulking químico), elevando k a 0.35 y la biomasa acumulada a 5.0 kg/m³, 
+#superando la capacidad de transporte del sistema.
+#4) Control de Emergencia: Se reduce el flujo de entrada a 10,000 m³/d y se 
+#maximiza la recirculación a 12,000 m³/d para evitar el arrastre de sólidos 
+#hacia el proceso de descarga final.
+#Si el flujo total de sólidos excede la capacidad de transporte, se producirá 
+#una pérdida masiva de biomasa, colapsando el tratamiento secundario.
+#Explique el comportamiento operativo ante la presencia de estos desinfectantes.
+
+# 2. PARÁMETROS
+# ------------------------------------------------------------------------------
+A  <- 800
+v0 <- 140
+
+> escenarios_industriales
+  ID             Estado     Q    Qr   X    k
+1  1            Nominal 15000  7500 3.5 0.18
+2  2   Presencia Tóxico 15000  7500 3.5 0.28
+3  3     Bulking Severo 15000  7500 5.0 0.35
+4  4 Control Emergencia 10000 12000 4.5 0.35
