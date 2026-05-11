@@ -1,0 +1,125 @@
+# Una industria debe tratar un caudal de aguas residuales de Q = 5,000 m³/d 
+# con una concentración de materia orgánica de S0 = 250 mg DBO_L / L. 
+# La mitad de esta carga orgánica se encuentra en forma soluble. 
+# El objetivo de la planta es producir un efluente de alta calidad (menor a 5 mg DBO_L / L).
+
+# La gerencia te ha pedido evaluar geométricamente dos alternativas de biopelícula 
+# aerobia para determinar cuál requiere más área superficial total de soporte y 
+# cuál ocupa más espacio físico (huella en planta):
+
+# 1. Torre Biológica (Filtro de percolación de alta tasa): Utilizando módulos 
+# de plástico corrugado con un área superficial específica (a) de 200 m²/m³ 
+# y una profundidad de 10 m. La carga superficial (Surface Loading, S.L.) 
+# de diseño es de 4 kg DBO_L / 1,000 m²-d.
+
+# 2. Contactor Biológico Rotatorio (RBC): Un sistema de múltiples etapas. 
+# La carga superficial global de diseño para el RBC se basa típicamente en 
+# la DBO soluble, siendo de 9 kg DBO_L(sol) / 1,000 m²-d. Se utilizarán ejes 
+# estándar comerciales que proveen 10,000 m² de superficie cada uno y ocupan 
+# un área física en planta de aproximadamente 30 m² por eje.
+cat("
+================================================================================
+ (Torre Biológica vs. RBC)
+================================================================================
+
+1. 
+Observen que el Filtro de Percolación requiere >312,000 m², mientras que el RBC 
+solo necesita ~69,400 m². Analicen por qué la transferencia de oxígeno del RBC 
+(giro mecánico) permite una carga superficial mayor que el flujo por gravedad 
+del Filtro, reduciendo drásticamente la superficie de empaque necesaria.
+
+2.  
+Noten la inversión espacial en el gráfico: la Torre Biológica, al usar 10 metros 
+de altura, ocupa solo ~156 m² de terreno, frente a los >210 m² de los ejes del 
+RBC. ¿En qué escenarios industriales priorizarían la verticalidad de la Torre 
+sobre la disposición horizontal del RBC?
+
+3.  
+Consideren que el RBC opera a ≈1.8 rpm sin necesidad de bombear agua a gran 
+altura, a diferencia de la Torre de 10 metros. Evalúen la decisión ingenieril: 
+¿Compensa el ahorro energético del RBC el mayor uso de superficie horizontal?
+================================================================================
+")
+
+# Cargar librerías necesarias
+library(ggplot2)
+library(tidyr)
+
+# =====================================================================
+# 1. PARÁMETROS DE DISEÑO Y CARGAS MÁSICAS
+# =====================================================================
+Q <- 5000         # Caudal afluente (m3/d)
+S0 <- 250         # Concentración DBO_L total (mg/L o g/m3)
+frac_sol <- 0.5   # Fracción de DBO_L soluble (50%)
+
+# Cálculos de Carga
+Carga_Total <- (Q * S0) / 1000                  # kg DBO_L/d
+Carga_Soluble <- Carga_Total * frac_sol         # kg DBO_L soluble/d
+
+cat("--- CARGAS DEL SISTEMA ---\n")
+cat(sprintf("Carga Másica Total: %.1f kg DBO_L/d\n", Carga_Total))
+cat(sprintf("Carga Másica Soluble: %.1f kg DBO_L/d\n\n", Carga_Soluble))
+
+# =====================================================================
+# 2. DISEÑO DEL FILTRO DE PERCOLACIÓN (Torre Biológica)
+# =====================================================================
+SL_TF <- 4 / 1000     # Carga superficial (kg DBO_L / m2-d)
+a_TF <- 200           # Área superficial específica del medio plástico (m2/m3)
+h_TF <- 10            # Profundidad de la torre (m)
+
+Area_TF <- Carga_Total / SL_TF
+Vol_TF <- Area_TF / a_TF
+Huella_TF <- Vol_TF / h_TF    # Área física en el terreno (m2)
+
+# =====================================================================
+# 3. DISEÑO DEL CONTACTOR BIOLÓGICO ROTATORIO (RBC)
+# =====================================================================
+SL_RBC <- 9 / 1000    # Carga superficial global (kg DBO_L soluble / m2-d)
+Area_RBC <- Carga_Soluble / SL_RBC
+
+# Cálculo de la huella física basándose en ejes comerciales
+Area_por_eje <- 10000 # m2 de biopelícula por eje
+Ejes_RBC <- ceiling(Area_RBC / Area_por_eje)
+Huella_RBC <- Ejes_RBC * 30 # Asumiendo 30 m2 de terreno físico por eje
+
+cat("--- RESULTADOS DEL DISEÑO GEOMÉTRICO ---\n")
+cat(sprintf("Filtro Percolador - Área Total Biopelícula: %d m2 | Huella en Planta: %.1f m2\n", 
+            Area_TF, Huella_TF))
+cat(sprintf("RBC               - Área Total Biopelícula: %d m2 | Huella en Planta: %.1f m2 (En %d ejes)\n\n", 
+            round(Area_RBC), Huella_RBC, Ejes_RBC))
+
+# =====================================================================
+# 4. VISUALIZACIÓN GRÁFICA CON GGPLOT2
+# =====================================================================
+# Preparar datos
+df_plot <- data.frame(
+  Tecnologia = c("Torre Biológica\n(Filtro Percolador)", "Contactor Biológico\nRotatorio (RBC)"),
+  `Area_Biopelicula_m2` = c(Area_TF, Area_RBC),
+  `Huella_Fisica_m2` = c(Huella_TF, Huella_RBC)
+)
+
+# Convertir a formato largo para ggplot
+df_long <- pivot_longer(df_plot, cols = c("Area_Biopelicula_m2", "Huella_Fisica_m2"), 
+                        names_to = "Parametro", values_to = "Metros_Cuadrados")
+
+# Renombrar etiquetas para el gráfico
+df_long$Parametro <- ifelse(df_long$Parametro == "Area_Biopelicula_m2", 
+                            "Área Total de Biopelícula", "Huella Física en Planta")
+
+# Gráfico estilo reporte técnico
+grafico <- ggplot(df_long, aes(x = Tecnologia, y = Metros_Cuadrados, fill = Parametro)) +
+  geom_bar(stat = "identity", position = "dodge", width = 0.6) +
+  facet_wrap(~ Parametro, scales = "free_y") + 
+  scale_fill_manual(values = c("Área Total de Biopelícula" = "#0072B2", 
+                               "Huella Física en Planta" = "#D55E00")) +
+  labs(title = "Comparativa Geométrica: Torre Biológica vs. RBC",
+       subtitle = "Evaluación de requerimientos de superficie basados en carga orgánica",
+       x = "Tecnología de Biopelícula",
+       y = "Área Requerida (m²)") +
+  theme_bw(base_size = 14) +
+  theme(legend.position = "none",
+        strip.background = element_rect(fill = "gray90"),
+        strip.text = element_text(face = "bold", size = 12),
+        axis.text.x = element_text(face = "bold"))
+
+print(grafico)
