@@ -1,0 +1,190 @@
+# ==========================================================================
+# Seguridad e higiene industrial - identificación de peligros y controles
+# ==========================================================================
+# Autor: Dr. José Juan Torres Martínez
+# Docente de Ciencias Químicas
+# Universidad Autónoma de San Luis Potosí (UASLP)
+# México
+#
+# Material académico para estudiantes
+# Serie: Biotecnología ambiental / Ingeniería - Seguridad e higiene industrial
+#
+# Descripción: Recorrido de inspección en un laboratorio de biotecnología
+# ambiental y planta piloto. Se registran los peligros encontrados por
+# tipo, se les asigna una medida de control según la jerarquía de
+# controles (eliminación, sustitución, controles de ingeniería,
+# controles administrativos y equipo de protección personal) y se
+# cuenta cuántos peligros hay de cada tipo y cuántos controles de cada
+# nivel. La jerarquía manda: primero se elimina o se sustituye el
+# peligro, y el equipo de protección personal es el último recurso.
+#
+# Referencia: jerarquía de controles de la NOM-030-STPS-2009 (servicios
+# preventivos de seguridad y salud en el trabajo) y del sistema de
+# gestión ISO 45001. Ruido: NOM-011-STPS-2006, nivel de exposición a
+# ruido máximo de 90 dB(A) en jornada de 8 horas.
+# ==========================================================================
+
+
+# 1. PREPARACIÓN DE ENTORNO
+# ------------------------------------------------------------------------------
+if (!require("pacman")) install.packages("pacman")
+pacman::p_load(ggplot2, dplyr)
+
+# 2. TABLA DE HALLAZGOS DE LA INSPECCIÓN
+# ------------------------------------------------------------------------------
+# Cada fila es un peligro encontrado en el recorrido. La columna control
+# indica el nivel de la jerarquía de controles que se aplica.
+hallazgos <- data.frame(
+  hallazgo = c(
+    "Campana sin extracción localizada en uso",
+    "Solventes sin etiquetar con pictogramas GHS",
+    "Sin lavaojos en el área de manejo de ácidos",
+    "Ruido de compresor: 88 dB(A) en jornada de 8 h",
+    "Iluminación deficiente en almacén de reactivos",
+    "Lodos con patógenos en contenedor abierto",
+    "Postura forzada en microscopía prolongada",
+    "Carga manual de garrafones de 20 L",
+    "Agitador de reactor sin guarda de protección",
+    "Cableado expuesto junto a toma de agua",
+    "Sin equipo de protección para manejo de hipoclorito",
+    "Derrames pequeños sin kit de contención",
+    "Limpieza de vidriería con thinner"
+  ),
+  tipo = c(
+    "Químico", "Químico", "Químico", "Físico", "Físico", "Biológico",
+    "Ergonómico", "Ergonómico", "Mecánico", "Eléctrico", "Químico",
+    "Químico", "Químico"
+  ),
+  control = c(
+    "Ingeniería", "Administrativo", "Ingeniería", "Ingeniería",
+    "Ingeniería", "Ingeniería", "Administrativo", "Administrativo",
+    "Ingeniería", "Eliminación", "EPP", "Administrativo", "Sustitución"
+  ),
+  medida = c(
+    "Instalar extracción localizada en la campana",
+    "Etiquetar todos los solventes según NOM-018-STPS-2015",
+    "Instalar lavaojos a menos de 10 s del área de ácidos",
+    "Encerrar el compresor; el límite NOM-011 es 90 dB(A) en 8 h",
+    "Aumentar luminarias en el almacén",
+    "Contenedor cerrado con tapa para lodos",
+    "Pausas y ajuste de altura de la silla y el microscopio",
+    "Carrito de transporte para garrafones",
+    "Colocar guarda fija en el agitador",
+    "Reubicar el cableado lejos de la toma de agua",
+    "Guantes y gafas para manejo de hipoclorito",
+    "Kit de contención en cada área de trabajo",
+    "Sustituir el thinner por detergente acuoso"
+  ),
+  stringsAsFactors = FALSE
+)
+
+# 3. CONTEOS A PARTIR DE LA TABLA
+# ------------------------------------------------------------------------------
+conteo_tipo <- hallazgos %>%
+  count(tipo, name = "n") %>%
+  arrange(desc(n))
+
+orden_controles <- c("Eliminación", "Sustitución", "Ingeniería",
+                     "Administrativo", "EPP")
+conteo_control <- hallazgos %>%
+  count(control, name = "n") %>%
+  mutate(control = factor(control, levels = orden_controles)) %>%
+  arrange(control)
+
+# Controles altos de la jerarquía: eliminación, sustitución e ingeniería.
+n_altos <- sum(hallazgos$control %in% c("Eliminación", "Sustitución", "Ingeniería"))
+pct_altos <- 100 * n_altos / nrow(hallazgos)
+
+cat("--- HALLAZGOS POR TIPO DE PELIGRO ---\n")
+print(conteo_tipo)
+cat("\n--- HALLAZGOS POR NIVEL DE CONTROL ---\n")
+print(conteo_control)
+cat(sprintf("\nTotal de hallazgos: %d\n", nrow(hallazgos)))
+cat(sprintf("Controles altos de la jerarquía (eliminación, sustitución, ingeniería): %d de %d (%.1f%%)\n",
+            n_altos, nrow(hallazgos), pct_altos))
+
+# 4. GRÁFICA 1: HALLAZGOS POR TIPO DE PELIGRO
+# ------------------------------------------------------------------------------
+p1 <- ggplot(conteo_tipo, aes(x = reorder(tipo, n), y = n, fill = tipo)) +
+  geom_col(width = 0.6, show.legend = FALSE) +
+  geom_text(aes(label = n), hjust = -0.3, fontface = "bold", size = 4) +
+  scale_fill_manual(values = c("Químico" = "#2980b9", "Físico" = "#e67e22",
+                               "Ergonómico" = "#16a085", "Biológico" = "#27ae60",
+                               "Mecánico" = "#8e44ad", "Eléctrico" = "#c0392b")) +
+  labs(
+    title = "Peligros encontrados en la inspección, por tipo",
+    x = "Tipo de peligro",
+    y = "Número de hallazgos (conteo)"
+  ) +
+  coord_flip() +
+  ylim(0, max(conteo_tipo$n) + 1) +
+  theme_minimal() +
+  theme(
+    plot.title = element_text(size = 13, face = "bold", color = "#2c3e50"),
+    axis.title = element_text(face = "bold", size = 10)
+  )
+
+# 5. GRÁFICA 2: HALLAZGOS POR NIVEL DE LA JERARQUÍA DE CONTROLES
+# ------------------------------------------------------------------------------
+p2 <- ggplot(conteo_control, aes(x = control, y = n, fill = control)) +
+  geom_col(width = 0.6, show.legend = FALSE) +
+  geom_text(aes(label = n), vjust = -0.5, fontface = "bold", size = 4) +
+  scale_fill_manual(values = c("Eliminación" = "#27ae60", "Sustitución" = "#2ecc71",
+                               "Ingeniería" = "#2980b9", "Administrativo" = "#f1c40f",
+                               "EPP" = "#e67e22")) +
+  labs(
+    title = "Medidas de control por nivel de la jerarquía (de más a menos eficaz)",
+    x = "Nivel de la jerarquía de controles",
+    y = "Número de hallazgos (conteo)"
+  ) +
+  ylim(0, max(conteo_control$n) + 1) +
+  theme_minimal() +
+  theme(
+    plot.title = element_text(size = 13, face = "bold", color = "#2c3e50"),
+    axis.title = element_text(face = "bold", size = 10)
+  )
+
+# 6. RENDERIZADO
+# ------------------------------------------------------------------------------
+print(p1)
+print(p2)
+
+# 7. EXPORTAR LOS GRÁFICOS ------------------------------------------------
+ggsave("seguridad_tipo_peligro.png", plot = p1, width = 10, height = 6, dpi = 300)
+ggsave("seguridad_jerarquia_controles.png", plot = p2, width = 10, height = 6, dpi = 300)
+
+# 8. INTERPRETACIÓN ---------------------------------------------------------
+# Gráfica 1 (por tipo): eje x, tipo de peligro; eje y, número de
+# hallazgos (conteo, adimensional). La inspección encontró 13 peligros:
+# 6 químicos, 2 físicos, 2 ergonómicos, 1 biológico, 1 mecánico y
+# 1 eléctrico. El tipo químico domina (6 de 13, casi la mitad), lo
+# esperado en un laboratorio que maneja ácidos, solventes e
+# hipoclorito. El hallazgo físico del ruido es un caso medido: el
+# compresor marca 88 dB(A) en jornada de 8 horas, por debajo del límite
+# de 90 dB(A) de la NOM-011-STPS-2006, con un margen de solo 2 dB(A);
+# aun cumpliendo el límite, se propone encerrarlo porque el margen es
+# pequeño y el ruido depende de la carga de trabajo del día.
+# Gráfica 2 (por control): eje x, nivel de la jerarquía de controles,
+# ordenado de más eficaz (eliminación) a menos eficaz (EPP); eje y,
+# número de hallazgos (conteo, adimensional). Los controles se reparten
+# así: 1 eliminación (reubicar el cableado expuesto), 1 sustitución
+# (detergente acuoso en lugar de thinner), 6 de ingeniería (extracción
+# en campana, lavaojos, encerramiento del compresor, luminarias,
+# contenedor cerrado para lodos, guarda del agitador), 4 administrativos
+# (etiquetado, pausas, carrito, kit de contención) y 1 de EPP (guantes y
+# gafas para hipoclorito). Los controles altos de la jerarquía
+# (eliminación, sustitución e ingeniería) suman 8 de 13, es decir 61.5%:
+# la mayoría de los peligros se controla en la fuente, no en la persona.
+
+# 9. QUÉ APRENDIMOS ---------------------------------------------------------
+# - La inspección se registra peligro por peligro, con su tipo y su
+#   control: sin la tabla no hay conteo y sin conteo no se sabe dónde
+#   está el problema (aquí, lo químico).
+# - La jerarquía de controles tiene orden: eliminar y sustituir van
+#   antes que la ingeniería, y el equipo de protección personal es el
+#   último recurso, no el primero.
+# - Cumplir un límite no siempre basta: el ruido de 88 dB(A) está por
+#   debajo de los 90 dB(A) de la norma, pero el margen de 2 dB(A) es
+#   pequeño y se controla de todos modos.
+# - Un solo hallazgo puede cambiar de nivel: el thinner se controlaba
+#   con EPP y se resolvió mejor sustituyéndolo por detergente acuoso.

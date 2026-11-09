@@ -1,0 +1,182 @@
+# ==========================================================================
+# Análisis de polvos - exposición ocupacional en aire
+# ==========================================================================
+# Autor: Dr. José Juan Torres Martínez
+# Docente de Ciencias Químicas
+# Universidad Autónoma de San Luis Potosí (UASLP)
+# México
+#
+# Material académico para estudiantes
+# Serie: Biotecnología ambiental / Ingeniería - Análisis de polvos
+#
+# Descripción: Monitoreo de polvos en el aire de 4 áreas de trabajo con
+# muestreo gravimétrico (filtros pesados antes y después del muestreo).
+# Se midió la concentración de polvo en 3 días por área y se comparó
+# el promedio con el valor límite de exposición (VLE) de la
+# NOM-010-STPS-2014. Se distingue la fracción respirable (la que llega
+# a los pulmones) de la fracción inhalable (la que entra por nariz y
+# boca): cada una tiene su propio límite.
+#
+# Referencia normativa: NOM-010-STPS-2014, "Agentes químicos
+# contaminantes del ambiente laboral - Reconocimiento, evaluación y
+# control" (DOF 24-10-2014), Apéndice I. VLE-PPT (promedio ponderado
+# en tiempo, 8 h): sílice cristalina (cuarzo), fracción respirable,
+# 0.025 mg/m3; partículas no especificadas de otra forma, fracción
+# respirable 3 mg/m3 y fracción inhalable 10 mg/m3.
+# ==========================================================================
+
+
+# 1. PREPARACIÓN DE ENTORNO
+# ------------------------------------------------------------------------------
+if (!require("pacman")) install.packages("pacman")
+pacman::p_load(ggplot2, dplyr)
+
+# 2. TABLA DE MEDICIONES
+# ------------------------------------------------------------------------------
+# Concentraciones medidas por muestreo gravimétrico en 3 días de trabajo,
+# en miligramos por metro cúbico (mg/m3). Cada área se monitorea en la
+# fracción que le corresponde: respirable para sílice cristalina y para
+# partículas no especificadas en el almacén, inhalable en el taller.
+mediciones <- data.frame(
+  area = rep(c("Molienda de muestras (sílice cristalina, respirable)",
+               "Almacén de reactivos (partículas no especificadas, respirable)",
+               "Taller de mantenimiento (partículas no especificadas, inhalable)",
+               "Preparación de muestras (sílice cristalina, respirable)"), each = 3),
+  dia = rep(c("Día 1", "Día 2", "Día 3"), times = 4),
+  concentracion_mg_m3 = c(
+    0.018, 0.022, 0.020,   # Molienda, sílice respirable
+    2.1, 2.4, 2.7,         # Almacén, PNEO respirable
+    6.5, 7.2, 8.0,         # Taller, PNEO inhalable
+    0.012, 0.015, 0.014    # Preparación, sílice respirable
+  ),
+  stringsAsFactors = FALSE
+)
+
+# Límites VLE-PPT de la NOM-010-STPS-2014 (ver encabezado).
+limites <- data.frame(
+  area = c("Molienda de muestras (sílice cristalina, respirable)",
+           "Almacén de reactivos (partículas no especificadas, respirable)",
+           "Taller de mantenimiento (partículas no especificadas, inhalable)",
+           "Preparación de muestras (sílice cristalina, respirable)"),
+  limite_mg_m3 = c(0.025, 3, 10, 0.025),
+  stringsAsFactors = FALSE
+)
+
+# 3. PROMEDIO POR ÁREA Y PORCENTAJE DEL LÍMITE
+# ------------------------------------------------------------------------------
+resumen <- mediciones %>%
+  group_by(area) %>%
+  summarise(
+    promedio_mg_m3 = mean(concentracion_mg_m3),
+    maximo_mg_m3 = max(concentracion_mg_m3),
+    .groups = "drop"
+  ) %>%
+  left_join(limites, by = "area") %>%
+  mutate(
+    porcentaje_limite = 100 * promedio_mg_m3 / limite_mg_m3,
+    porcentaje_maximo = 100 * maximo_mg_m3 / limite_mg_m3,
+    cumple = promedio_mg_m3 < limite_mg_m3
+  )
+
+cat("--- POLVOS: PROMEDIO POR ÁREA FRENTE AL VLE (NOM-010-STPS-2014) ---\n")
+print(resumen)
+cat(sprintf("\nÁrea más cercana al límite (promedio): %s, %.0f%% del VLE\n",
+            resumen$area[which.max(resumen$porcentaje_limite)],
+            max(resumen$porcentaje_limite)))
+
+# 4. GRÁFICA 1: PORCENTAJE DEL LÍMITE ALCANZADO POR ÁREA
+# ------------------------------------------------------------------------------
+resumen_ord <- resumen %>% arrange(desc(porcentaje_limite))
+resumen_ord$area <- factor(resumen_ord$area, levels = rev(resumen_ord$area))
+
+p1 <- ggplot(resumen_ord, aes(x = area, y = porcentaje_limite, fill = porcentaje_limite)) +
+  geom_col(width = 0.6) +
+  geom_text(aes(label = sprintf("%.0f%%", porcentaje_limite)), hjust = -0.3,
+            fontface = "bold", size = 4) +
+  geom_hline(yintercept = 100, linetype = "dashed", color = "#c0392b", linewidth = 1) +
+  annotate("text", x = 1, y = 106, label = "Límite NOM-010-STPS-2014 (100%)",
+           hjust = 0, color = "#c0392b", fontface = "bold", size = 3.5) +
+  scale_fill_gradient(low = "#27ae60", high = "#e67e22", name = "% del límite") +
+  labs(
+    title = "Exposición a polvos: porcentaje del valor límite alcanzado",
+    subtitle = "Promedio de 3 días frente al VLE-PPT de la NOM-010-STPS-2014",
+    x = "Área y fracción de polvo",
+    y = "Porcentaje del valor límite (%)"
+  ) +
+  coord_flip() +
+  ylim(0, 115) +
+  theme_minimal() +
+  theme(
+    plot.title = element_text(size = 13, face = "bold", color = "#2c3e50"),
+    axis.title = element_text(face = "bold", size = 10)
+  )
+
+# 5. GRÁFICA 2: MEDICIONES POR DÍA FRENTE AL LÍMITE
+# ------------------------------------------------------------------------------
+mediciones$dia <- factor(mediciones$dia, levels = c("Día 1", "Día 2", "Día 3"))
+
+p2 <- ggplot(mediciones, aes(x = dia, y = concentracion_mg_m3, group = area)) +
+  geom_line(color = "#2980b9", linewidth = 1.1) +
+  geom_point(color = "#2980b9", size = 3) +
+  geom_hline(data = limites, aes(yintercept = limite_mg_m3),
+             linetype = "dashed", color = "#c0392b", linewidth = 1) +
+  facet_wrap(~ area, scales = "free_y") +
+  labs(
+    title = "Concentración de polvos por día y su valor límite",
+    subtitle = "Línea punteada roja: VLE-PPT de la NOM-010-STPS-2014 para esa fracción",
+    x = "Día de muestreo",
+    y = "Concentración (mg/m3)"
+  ) +
+  theme_minimal() +
+  theme(
+    plot.title = element_text(size = 13, face = "bold", color = "#2c3e50"),
+    axis.title = element_text(face = "bold", size = 10),
+    strip.text = element_text(size = 8)
+  )
+
+# 6. RENDERIZADO
+# ------------------------------------------------------------------------------
+print(p1)
+print(p2)
+
+# 7. EXPORTAR LOS GRÁFICOS ------------------------------------------------
+ggsave("polvos_porcentaje_limite.png", plot = p1, width = 10, height = 6, dpi = 300)
+ggsave("polvos_mediciones.png", plot = p2, width = 10, height = 6, dpi = 300)
+
+# 8. INTERPRETACIÓN ---------------------------------------------------------
+# Gráfica 1 (porcentaje del límite): eje x, área y fracción de polvo;
+# eje y, porcentaje del valor límite (%, adimensional: cociente entre
+# la concentración medida y el límite, por 100). La línea punteada en
+# 100% es el límite de la norma. Ninguna área rebasa el límite en
+# promedio, pero dos llegan a 80%: la molienda de muestras (sílice
+# cristalina respirable, promedio de 0.020 mg/m3 frente a un límite de
+# 0.025 mg/m3) y el almacén de reactivos (partículas no especificadas,
+# fracción respirable, promedio de 2.4 mg/m3 frente a 3 mg/m3). El
+# taller llega a 72.3% (promedio de 7.23 mg/m3 frente a 10 mg/m3,
+# fracción inhalable) y la preparación de muestras a 54.7% (promedio
+# de 0.0137 mg/m3 frente a 0.025 mg/m3).
+# Gráfica 2 (mediciones por día): eje x, día de muestreo; eje y,
+# concentración en mg/m3; cada panel es un área con su propia escala.
+# En las 4 áreas la concentración sube del día 1 al día 3: la molienda
+# pasa de 0.018 a 0.022 mg/m3 y el almacén de 2.1 a 2.7 mg/m3. El máximo
+# registrado en el almacén (2.7 mg/m3) es 90% del límite y el de la
+# molienda (0.022 mg/m3) es 88%: los días de mayor trabajo se acercan
+# al límite aunque el promedio cumpla. La sílice cristalina tiene el
+# límite más bajo de todos (0.025 mg/m3) porque es la fracción más
+# peligrosa: las partículas respirables llegan a los pulmones y se
+# quedan ahí.
+
+# 9. QUÉ APRENDIMOS ---------------------------------------------------------
+# - Polvo no es solo polvo: la fracción respirable y la inhalable
+#   tienen límites distintos (3 y 10 mg/m3 para partículas no
+#   especificadas), y la sílice cristalina respirable tiene el límite
+#   más estricto, 0.025 mg/m3.
+# - Las concentraciones en mg/m3 no se comparan entre sí: 0.020 mg/m3
+#   de sílice es 80% del límite, mientras que 7.23 mg/m3 en el taller
+#   es 72.3%. Lo que importa es el porcentaje del límite propio.
+# - El promedio cumple pero los días de mayor carga se acercan al
+#   límite (90% en el almacén, 88% en la molienda): el monitoreo debe
+#   cubrir los días de más trabajo, no solo los tranquilos.
+# - El muestreo gravimétrico mide masa en el filtro: la concentración
+#   sale de dividir esa masa entre el volumen de aire muestreado, y
+#   de ahí se compara con el VLE.

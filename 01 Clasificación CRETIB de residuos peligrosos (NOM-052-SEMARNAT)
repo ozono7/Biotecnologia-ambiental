@@ -1,0 +1,219 @@
+# ==========================================================================
+# Clasificación CRETIB de residuos peligrosos (NOM-052-SEMARNAT)
+# ==========================================================================
+# Autor: Dr. José Juan Torres Martínez
+# Docente de Ciencias Químicas
+# Universidad Autónoma de San Luis Potosí (UASLP)
+# México
+#
+# Material académico para estudiantes
+# Serie: Biotecnología ambiental / Residuos peligrosos
+#
+# Descripción: Clasificación de residuos de laboratorio y de planta de
+# tratamiento con los criterios CRETIB de la NOM-052-SEMARNAT-2005:
+# Corrosivo, Reactivo, Explosivo, Tóxico ambiental, Inflamable y
+# Biológico-infeccioso. Cada residuo se clasifica a partir de sus
+# mediciones (pH, punto de inflamación, prueba de extracción PECT y
+# generación de gases), no a partir de su nombre.
+#
+# Referencia normativa: NOM-052-SEMARNAT-2005, "Que establece las
+# características, el procedimiento de identificación, clasificación y
+# los listados de los residuos peligrosos" (DOF 23-06-2006). Criterios
+# aplicados: C, pH <= 2.0 o >= 12.5 (punto 7.2); R, libera más de
+# 250 mg de HCN/kg o 500 mg de H2S/kg en medio ácido (punto 7.3);
+# T, lixiviado PECT con constituyentes por arriba de los límites del
+# Apéndice II (NOM-053-SEMARNAT-1993: Pb 5.0, Cd 1.0, Cr(VI) 5.0,
+# Hg 0.2, As 5.0 mg/L; benceno 0.5 mg/L); I, punto de inflamación
+# inferior a 60.5 °C en copa cerrada (punto 7.6); B, remite a la
+# NOM-087-SEMARNAT-SSA1-2002 (punto 7.7). La clasificación por
+# características no sustituye la revisión de los listados de la norma.
+# ==========================================================================
+
+
+# 1. PREPARACIÓN DE ENTORNO
+# ------------------------------------------------------------------------------
+if (!require("pacman")) install.packages("pacman")
+pacman::p_load(ggplot2, dplyr)
+
+# 2. TABLA DE MEDICIONES
+# ------------------------------------------------------------------------------
+# Mediciones de laboratorio de cada residuo. NA significa que esa prueba
+# no aplica a ese residuo (por ejemplo, el punto de inflamación no se mide
+# en un residuo acuoso sin solventes, y el pH no se mide en un solvente
+# orgánico). El lixiviado PECT es el extracto de la prueba de extracción
+# para toxicidad (NOM-053-SEMARNAT-1993).
+residuos <- data.frame(
+  residuo = c(
+    "Ácido clorhídrico gastado",
+    "Sosa cáustica gastada",
+    "Solvente gastado (acetona/tolueno)",
+    "Thinner gastado",
+    "Aceite gastado de bomba de vacío",
+    "Lodo de PTAR con metales",
+    "Sales de cianuro gastadas",
+    "Ácido pícrico seco",
+    "Cultivo microbiológico desechado",
+    "Agua de lavado de vidriería"
+  ),
+  origen = c(
+    "Laboratorio de análisis",
+    "Laboratorio de análisis",
+    "Laboratorio de extracciones",
+    "Taller de mantenimiento",
+    "Laboratorio",
+    "Planta de tratamiento",
+    "Laboratorio",
+    "Laboratorio",
+    "Laboratorio de microbiología",
+    "Laboratorio"
+  ),
+  ph = c(1.2, 13.1, NA, NA, NA, 7.8, NA, NA, NA, 6.8),
+  punto_inflamacion_c = c(NA, NA, 18, 24, 210, NA, NA, NA, NA, NA),
+  hcn_mg_kg = c(NA, NA, NA, NA, NA, NA, 420, NA, NA, NA),
+  pb_pect_mg_l = c(NA, NA, NA, NA, 0.8, 7.3, NA, NA, NA, 0.3),
+  explosivo = c(FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, TRUE, FALSE, FALSE),
+  biologico_infeccioso = c(FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, FALSE, TRUE, FALSE),
+  stringsAsFactors = FALSE
+)
+
+# 3. CLASIFICACIÓN CRETIB A PARTIR DE LAS MEDICIONES
+# ------------------------------------------------------------------------------
+# Límites de la NOM-052-SEMARNAT-2005 (ver encabezado).
+limite_ph_acido <- 2.0
+limite_ph_basico <- 12.5
+limite_inflamacion_c <- 60.5
+limite_hcn_mg_kg <- 250
+limite_pb_pect_mg_l <- 5.0
+
+residuos <- residuos %>%
+  mutate(
+    corrosivo = !is.na(ph) & (ph <= limite_ph_acido | ph >= limite_ph_basico),
+    inflamable = !is.na(punto_inflamacion_c) & punto_inflamacion_c < limite_inflamacion_c,
+    reactivo = !is.na(hcn_mg_kg) & hcn_mg_kg > limite_hcn_mg_kg,
+    toxico = !is.na(pb_pect_mg_l) & pb_pect_mg_l > limite_pb_pect_mg_l,
+    n_criterios = corrosivo + inflamable + reactivo + toxico + explosivo + biologico_infeccioso,
+    peligroso = n_criterios >= 1,
+    clasificacion = case_when(
+      !peligroso ~ "No peligroso por CRETIB",
+      corrosivo ~ "C - Corrosivo",
+      inflamable ~ "I - Inflamable",
+      toxico ~ "T - Tóxico ambiental",
+      reactivo ~ "R - Reactivo",
+      explosivo ~ "E - Explosivo",
+      biologico_infeccioso ~ "B - Biológico-infeccioso",
+      TRUE ~ "Revisar"
+    )
+  )
+
+cat("--- CLASIFICACIÓN CRETIB DE LOS RESIDUOS ---\n")
+print(residuos[, c("residuo", "ph", "punto_inflamacion_c", "pb_pect_mg_l", "clasificacion")])
+cat(sprintf("\nResiduos peligrosos: %d de %d (%.0f%%)\n",
+            sum(residuos$peligroso), nrow(residuos),
+            100 * mean(residuos$peligroso)))
+
+# Conteo por criterio, calculado a partir de las columnas lógicas.
+conteo <- data.frame(
+  criterio = c("C - Corrosivo", "R - Reactivo", "E - Explosivo",
+               "T - Tóxico ambiental", "I - Inflamable",
+               "B - Biológico-infeccioso", "No peligroso por CRETIB"),
+  n = c(sum(residuos$corrosivo), sum(residuos$reactivo),
+        sum(residuos$explosivo), sum(residuos$toxico),
+        sum(residuos$inflamable), sum(residuos$biologico_infeccioso),
+        sum(!residuos$peligroso))
+)
+
+# 4. GRÁFICA 1: pH DE LOS RESIDUOS ACUOSOS FRENTE A LOS LÍMITES CRETIB
+# ------------------------------------------------------------------------------
+df_ph <- residuos %>% filter(!is.na(ph))
+
+p1 <- ggplot(df_ph, aes(x = reorder(residuo, ph), y = ph, fill = corrosivo)) +
+  geom_col(width = 0.6) +
+  geom_hline(yintercept = limite_ph_acido, linetype = "dashed", color = "#c0392b", linewidth = 1) +
+  geom_hline(yintercept = limite_ph_basico, linetype = "dashed", color = "#c0392b", linewidth = 1) +
+  annotate("text", x = 1, y = limite_ph_acido + 0.8, label = "Límite ácido: pH 2.0",
+           hjust = 0, color = "#c0392b", fontface = "bold", size = 3.5) +
+  annotate("text", x = 1, y = limite_ph_basico + 0.8, label = "Límite básico: pH 12.5",
+           hjust = 0, color = "#c0392b", fontface = "bold", size = 3.5) +
+  scale_fill_manual(values = c("FALSE" = "#27ae60", "TRUE" = "#c0392b"),
+                    labels = c("No corrosivo", "Corrosivo")) +
+  labs(
+    title = "pH de los residuos acuosos y límites CRETIB (NOM-052-SEMARNAT-2005)",
+    x = "Residuo",
+    y = "pH (adimensional)",
+    fill = "Clasificación"
+  ) +
+  coord_flip() +
+  theme_minimal() +
+  theme(
+    plot.title = element_text(size = 13, face = "bold", color = "#2c3e50"),
+    axis.title = element_text(face = "bold", size = 10)
+  )
+
+# 5. GRÁFICA 2: NÚMERO DE RESIDUOS POR CRITERIO CRETIB
+# ------------------------------------------------------------------------------
+p2 <- ggplot(conteo, aes(x = reorder(criterio, n), y = n, fill = criterio)) +
+  geom_col(width = 0.6, show.legend = FALSE) +
+  geom_text(aes(label = n), hjust = -0.3, fontface = "bold", size = 4) +
+  scale_fill_manual(values = c("C - Corrosivo" = "#c0392b", "R - Reactivo" = "#e67e22",
+                               "E - Explosivo" = "#8e44ad", "T - Tóxico ambiental" = "#2980b9",
+                               "I - Inflamable" = "#d35400", "B - Biológico-infeccioso" = "#16a085",
+                               "No peligroso por CRETIB" = "#27ae60")) +
+  labs(
+    title = "Residuos clasificados por criterio CRETIB",
+    x = "Criterio CRETIB",
+    y = "Número de residuos (conteo)"
+  ) +
+  coord_flip() +
+  ylim(0, max(conteo$n) + 0.5) +
+  theme_minimal() +
+  theme(
+    plot.title = element_text(size = 13, face = "bold", color = "#2c3e50"),
+    axis.title = element_text(face = "bold", size = 10)
+  )
+
+# 6. RENDERIZADO
+# ------------------------------------------------------------------------------
+print(p1)
+print(p2)
+
+# 7. EXPORTAR LOS GRÁFICOS ------------------------------------------------
+ggsave("cretib_ph.png", plot = p1, width = 10, height = 6, dpi = 300)
+ggsave("cretib_conteo_criterios.png", plot = p2, width = 10, height = 6, dpi = 300)
+
+# 8. INTERPRETACIÓN ---------------------------------------------------------
+# Gráfica 1 (pH): eje x, residuo; eje y, pH (adimensional: el pH es el
+# logaritmo negativo de la actividad del ion hidrógeno, por eso no lleva
+# unidades). Las líneas punteadas marcan los límites de la NOM-052:
+# pH 2.0 y pH 12.5. Solo 2 de los 4 residuos acuosos medidos caen fuera
+# del intervalo: el ácido clorhídrico gastado (pH 1.2) y la sosa cáustica
+# gastada (pH 13.1) son corrosivos. El lodo de PTAR (pH 7.8) y el agua de
+# lavado de vidriería (pH 6.8) quedan dentro del intervalo y no son
+# corrosivos por pH.
+# Gráfica 2 (conteo por criterio): eje x, criterio CRETIB; eje y, número
+# de residuos (conteo, adimensional). De los 10 residuos, 8 son peligrosos
+# (80%): 2 corrosivos, 2 inflamables (solvente gastado con punto de
+# inflamación de 18 °C y thinner gastado con 24 °C, ambos por debajo del
+# límite de 60.5 °C), 1 tóxico ambiental (lodo de PTAR: Pb en lixiviado
+# PECT de 7.3 mg/L, por arriba del límite de 5.0 mg/L), 1 reactivo (sales
+# de cianuro: 420 mg de HCN/kg, por arriba del límite de 250 mg/kg),
+# 1 explosivo (ácido pícrico seco) y 1 biológico-infeccioso (cultivo
+# microbiológico). Los 2 restantes (aceite gastado de bomba de vacío, con
+# punto de inflamación de 210 °C y Pb en PECT de 0.8 mg/L; agua de lavado
+# de vidriería, pH 6.8 y Pb en PECT de 0.3 mg/L) no cumplen ningún criterio
+# CRETIB con las mediciones disponibles.
+
+# 9. QUÉ APRENDIMOS ---------------------------------------------------------
+# - Un residuo es peligroso si cumple AL MENOS UN criterio CRETIB: basta
+#   un solo resultado fuera de límite (pH 1.2, o Pb en PECT de 7.3 mg/L)
+#   para clasificarlo.
+# - El nombre del residuo no clasifica: el aceite gastado suena peligroso
+#   y el agua de lavado suena inocua, pero lo que decide es la medición
+#   frente al límite de la norma.
+# - Cada criterio tiene su propia prueba: pH para corrosividad, punto de
+#   inflamación para inflamabilidad, PECT para toxicidad ambiental y
+#   generación de HCN para reactividad. Sin la medición no hay
+#   clasificación.
+# - La clasificación por características es solo una parte: la NOM-052
+#   también tiene listados de residuos peligrosos por fuente y por
+#   industria que se deben revisar antes de declarar un residuo como no
+#   peligroso.

@@ -1,0 +1,196 @@
+# ==========================================================================
+# Reacción ante fugas, derrames y contaminantes
+# ==========================================================================
+# Autor: Dr. José Juan Torres Martínez
+# Docente de Ciencias Químicas
+# Universidad Autónoma de San Luis Potosí (UASLP)
+# México
+#
+# Material académico para estudiantes
+# Serie: Biotecnología ambiental / Ingeniería - Respuesta a emergencias
+#
+# Descripción: Respuesta a un derrame de 25 L de ácido sulfúrico
+# concentrado en el almacén de reactivos. Se calcula la masa
+# derramada, la cantidad de bicarbonato de sodio necesaria para
+# neutralizarlo, la cronología de la respuesta y las zonas de
+# afectación (caliente, tibia y fría). La neutralización sigue la
+# reacción: H2SO4 + 2 NaHCO3 -> Na2SO4 + 2 CO2 + 2 H2O.
+#
+# Referencia: plan de respuesta a emergencias químicas del centro de
+# trabajo y hojas de datos de seguridad (NOM-018-STPS-2015). Los
+# tiempos de respuesta, los radios de las zonas y la cantidad de
+# absorbente son supuestos del escenario de este ejercicio, definidos
+# por el plan interno, no valores de una norma.
+# ==========================================================================
+
+
+# 1. PREPARACIÓN DE ENTORNO
+# ------------------------------------------------------------------------------
+if (!require("pacman")) install.packages("pacman")
+pacman::p_load(ggplot2, dplyr)
+
+# 2. DATOS DEL ESCENARIO
+# ------------------------------------------------------------------------------
+# Derrame de ácido sulfúrico concentrado (98% p/p) en el almacén de
+# reactivos. Volumen derramado medido en el contenedor roto.
+volumen_derramado_l <- 25
+densidad_h2so4_kg_l <- 1.84
+masa_molar_h2so4_g_mol <- 98.079
+masa_molar_nahco3_g_mol <- 84.007
+exceso_neutralizante <- 0.10
+
+# Supuestos del escenario (plan interno de respuesta a emergencias):
+# 1.2 kg de absorbente mineral por cada litro derramado; radios de
+# zona caliente 5 m, tibia 10 m y fría 15 m.
+absorbente_kg_por_l <- 1.2
+radio_caliente_m <- 5
+radio_tibia_m <- 10
+radio_fria_m <- 15
+
+# Cronología registrada en el simulacro (minutos desde la detección).
+fases <- data.frame(
+  fase = c(
+    "Detección y alarma",
+    "Evacuación del área",
+    "Llegada de la brigada",
+    "Contención con absorbente",
+    "Neutralización",
+    "Limpieza y verificación"
+  ),
+  inicio_min = c(0, 2, 5, 8, 18, 35),
+  fin_min = c(2, 5, 8, 18, 35, 60),
+  stringsAsFactors = FALSE
+)
+
+# 3. CÁLCULOS DE LA RESPUESTA
+# ------------------------------------------------------------------------------
+# Masa derramada y neutralizante necesario (estequiometría 1:2).
+masa_derramada_kg <- volumen_derramado_l * densidad_h2so4_kg_l
+moles_h2so4 <- masa_derramada_kg * 1000 / masa_molar_h2so4_g_mol
+moles_nahco3 <- 2 * moles_h2so4
+nahco3_kg <- moles_nahco3 * masa_molar_nahco3_g_mol / 1000
+nahco3_con_exceso_kg <- nahco3_kg * (1 + exceso_neutralizante)
+absorbente_kg <- volumen_derramado_l * absorbente_kg_por_l
+
+# Duración de cada fase y su parte del tiempo total.
+fases <- fases %>%
+  mutate(
+    duracion_min = fin_min - inicio_min,
+    porcentaje_tiempo = 100 * duracion_min / max(fin_min)
+  )
+
+# Áreas de las zonas de afectación (círculos concéntricos).
+zonas <- data.frame(
+  zona = c("Caliente (derrame)", "Tibia (control)", "Fría (apoyo)"),
+  radio_m = c(radio_caliente_m, radio_tibia_m, radio_fria_m),
+  stringsAsFactors = FALSE
+) %>%
+  mutate(area_m2 = pi * radio_m^2)
+
+tiempo_total_min <- max(fases$fin_min)
+
+cat("--- DERRAME DE ÁCIDO SULFÚRICO CONCENTRADO ---\n")
+cat(sprintf("Volumen derramado: %.0f L | Masa derramada: %.1f kg | Moles de H2SO4: %.1f mol\n",
+            volumen_derramado_l, masa_derramada_kg, moles_h2so4))
+cat(sprintf("Bicarbonato de sodio estequiométrico: %.1f kg | Con 10%% de exceso: %.1f kg\n",
+            nahco3_kg, nahco3_con_exceso_kg))
+cat(sprintf("Absorbente mineral (supuesto del plan): %.0f kg\n", absorbente_kg))
+cat(sprintf("Tiempo total de respuesta: %d min\n\n", tiempo_total_min))
+print(fases[, c("fase", "inicio_min", "fin_min", "duracion_min")])
+cat("\n")
+print(zonas)
+
+# 4. GRÁFICA 1: CRONOLOGÍA DE LA RESPUESTA
+# ------------------------------------------------------------------------------
+fases_ord <- fases %>%
+  mutate(fase = factor(fase, levels = rev(fase)))
+
+p1 <- ggplot(fases_ord, aes(y = fase)) +
+  geom_segment(aes(x = inicio_min, xend = fin_min, yend = fase),
+               linewidth = 8, color = "#2980b9") +
+  geom_text(aes(x = (inicio_min + fin_min) / 2,
+                label = sprintf("%d min", duracion_min)),
+            color = "white", fontface = "bold", size = 3.5) +
+  geom_text(aes(x = fin_min + 1, label = sprintf("min %d", fin_min)),
+            hjust = 0, color = "#2c3e50", size = 3.5) +
+  labs(
+    title = "Cronología de la respuesta al derrame (minutos desde la detección)",
+    x = "Tiempo (min)",
+    y = "Fase de la respuesta"
+  ) +
+  xlim(0, tiempo_total_min + 8) +
+  theme_minimal() +
+  theme(
+    plot.title = element_text(size = 13, face = "bold", color = "#2c3e50"),
+    axis.title = element_text(face = "bold", size = 10)
+  )
+
+# 5. GRÁFICA 2: ÁREAS DE LAS ZONAS DE AFECTACIÓN
+# ------------------------------------------------------------------------------
+zonas_ord <- zonas %>%
+  mutate(zona = factor(zona, levels = c("Caliente (derrame)", "Tibia (control)", "Fría (apoyo)")))
+
+p2 <- ggplot(zonas_ord, aes(x = zona, y = area_m2, fill = zona)) +
+  geom_col(width = 0.6, show.legend = FALSE) +
+  geom_text(aes(label = sprintf("%.1f m2", area_m2)), vjust = -0.5,
+            fontface = "bold", size = 4) +
+  scale_fill_manual(values = c("Caliente (derrame)" = "#c0392b",
+                               "Tibia (control)" = "#f1c40f",
+                               "Fría (apoyo)" = "#27ae60")) +
+  labs(
+    title = "Áreas de las zonas de afectación (círculos de 5, 10 y 15 m de radio)",
+    x = "Zona",
+    y = "Área (m2)"
+  ) +
+  ylim(0, max(zonas_ord$area_m2) * 1.15) +
+  theme_minimal() +
+  theme(
+    plot.title = element_text(size = 13, face = "bold", color = "#2c3e50"),
+    axis.title = element_text(face = "bold", size = 10)
+  )
+
+# 6. RENDERIZADO
+# ------------------------------------------------------------------------------
+print(p1)
+print(p2)
+
+# 7. EXPORTAR LOS GRÁFICOS ------------------------------------------------
+ggsave("derrames_cronologia.png", plot = p1, width = 10, height = 6, dpi = 300)
+ggsave("derrames_zonas.png", plot = p2, width = 10, height = 6, dpi = 300)
+
+# 8. INTERPRETACIÓN ---------------------------------------------------------
+# Gráfica 1 (cronología): eje x, tiempo en minutos desde la detección;
+# eje y, fase de la respuesta. La respuesta completa tomó 60 minutos.
+# Las dos primeras fases son rápidas: detección y alarma 2 minutos
+# (3.3% del tiempo total) y evacuación del área 3 minutos (5.0%).
+# La brigada llegó a los 8 minutos. La contención con absorbente tomó
+# 10 minutos (16.7%), la neutralización 17 minutos (28.3%) y la
+# limpieza con verificación 25 minutos (41.7%): casi la mitad del
+# tiempo se va en dejar el área limpia y comprobada, no en la
+# emergencia misma. El derrame fue de 25 L, que con una densidad de
+# 1.84 kg/L son 46.0 kg de ácido sulfúrico (469.0 moles). La
+# neutralización necesita 2 moles de bicarbonato por cada mol de ácido,
+# es decir 78.8 kg de NaHCO3, y con 10% de exceso 86.7 kg. El plan
+# interno pide además 30 kg de absorbente mineral (1.2 kg por litro
+# derramado, supuesto del escenario).
+# Gráfica 2 (zonas): eje x, zona; eje y, área en m2. Las zonas son
+# círculos concéntricos de 5, 10 y 15 m de radio: la zona caliente
+# (derrame) cubre 78.5 m2, la tibia (control) 314.2 m2 y la fría (apoyo)
+# 706.9 m2. El área crece con el cuadrado del radio, así que la zona
+# fría es 9 veces mayor que la caliente (706.9 / 78.5 = 9.0): acordonar
+# 15 m en lugar de 5 m multiplica por 9 el área a controlar, por eso el
+# radio se fija con criterio y no "por si acaso".
+
+# 9. QUÉ APRENDIMOS ---------------------------------------------------------
+# - La cantidad de neutralizante sale de la estequiometría, no de una
+#   receta: 25 L de H2SO4 son 469.0 moles y piden 78.8 kg de NaHCO3
+#   (86.7 kg con 10% de exceso). Sin el cálculo se lleva de menos o de
+#   más.
+# - La respuesta se mide en minutos por fase: aquí la limpieza y
+#   verificación (25 min, 41.7%) tomó más que la contención y la
+#   neutralización juntas (27 min).
+# - Las zonas se definen por radio y su área crece con el cuadrado del
+#   radio: pasar de 5 a 15 m multiplica el área por 9.
+# - Zona caliente, tibia y fría tienen funciones distintas: solo la
+#   brigada con equipo entra a la caliente, la tibia es de control y
+#   descontaminación, y la fría es de apoyo y mando.

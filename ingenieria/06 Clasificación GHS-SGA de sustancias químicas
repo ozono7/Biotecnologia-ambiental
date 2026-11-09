@@ -1,0 +1,208 @@
+# ==========================================================================
+# Clasificación GHS-SGA de sustancias químicas
+# ==========================================================================
+# Autor: Dr. José Juan Torres Martínez
+# Docente de Ciencias Químicas
+# Universidad Autónoma de San Luis Potosí (UASLP)
+# México
+#
+# Material académico para estudiantes
+# Serie: Biotecnología ambiental / Ingeniería - Clasificación GHS/SGA
+#
+# Descripción: Clasificación de 8 sustancias de uso común en el
+# laboratorio según el Sistema Globalmente Armonizado de Clasificación
+# y Etiquetado de Productos Químicos (SGA/GHS). Para cada sustancia se
+# registran sus pictogramas, sus frases de peligro (frases H) y su
+# palabra de advertencia, tomados de su hoja de datos de seguridad.
+# El conteo de pictogramas y de frases H sale de la tabla: así se ve
+# qué peligros se repiten en el laboratorio y qué sustancias acumulan
+# más advertencias.
+#
+# Referencia: Sistema Globalmente Armonizado de Clasificación y
+# Etiquetado de Productos Químicos (SGA/GHS), Naciones Unidas, y su
+# adopción en México en la NOM-018-STPS-2015 (sistema armonizado para
+# la identificación y comunicación de peligros y riesgos por sustancias
+# químicas peligrosas en los centros de trabajo). Las clasificaciones
+# de cada sustancia corresponden a las de su hoja de datos de
+# seguridad (sección 2).
+# ==========================================================================
+
+
+# 1. PREPARACIÓN DE ENTORNO
+# ------------------------------------------------------------------------------
+if (!require("pacman")) install.packages("pacman")
+pacman::p_load(ggplot2, dplyr)
+
+# 2. TABLA DE SUSTANCIAS Y SU CLASIFICACIÓN GHS
+# ------------------------------------------------------------------------------
+# Pictogramas y frases H separados por "; ". La palabra de advertencia
+# es "Peligro" para las 8 sustancias: todas tienen al menos un peligro
+# de categoría 1 o 2.
+sustancias <- data.frame(
+  sustancia = c(
+    "Metanol",
+    "Acetona",
+    "Tolueno",
+    "Ácido sulfúrico concentrado",
+    "Hidróxido de sodio",
+    "Hipoclorito de sodio (solución)",
+    "Formaldehído (solución 37%)",
+    "Etanol"
+  ),
+  pictogramas = c(
+    "Llama; Calavera; Peligro para la salud",
+    "Llama; Signo de exclamación",
+    "Llama; Peligro para la salud; Signo de exclamación",
+    "Corrosión",
+    "Corrosión",
+    "Corrosión; Medio ambiente",
+    "Calavera; Corrosión; Peligro para la salud",
+    "Llama; Signo de exclamación"
+  ),
+  frases_h = c(
+    "H225; H301; H311; H331; H370",
+    "H225; H319; H336",
+    "H225; H304; H315; H336; H361d; H373",
+    "H290; H314",
+    "H290; H314",
+    "H314; H400",
+    "H301; H311; H314; H317; H331; H341; H350",
+    "H225; H319"
+  ),
+  palabra_advertencia = rep("Peligro", 8),
+  stringsAsFactors = FALSE
+)
+
+# Significado de las frases H usadas (para leer la tabla):
+# H225 líquido y vapores muy inflamables; H290 puede ser corrosivo para
+# los metales; H301 tóxico en caso de ingestión; H304 puede ser mortal
+# en caso de ingestión y penetración en las vías respiratorias; H311
+# tóxico en contacto con la piel; H314 provoca quemaduras graves en la
+# piel y lesiones oculares graves; H315 provoca irritación cutánea;
+# H317 puede provocar una reacción alérgica en la piel; H319 provoca
+# irritación ocular grave; H331 tóxico en caso de inhalación; H336
+# puede provocar somnolencia o vértigo; H341 se sospecha que provoca
+# defectos genéticos; H350 puede provocar cáncer; H361d se sospecha
+# que daña al feto; H370 provoca daños en los órganos; H373 puede
+# provocar daños en los órganos tras exposiciones prolongadas o
+# repetidas; H400 muy tóxico para los organismos acuáticos.
+
+# 3. CONTEOS A PARTIR DE LA TABLA
+# ------------------------------------------------------------------------------
+# Número de pictogramas y de frases H por sustancia, contados desde las
+# columnas de texto.
+sustancias <- sustancias %>%
+  mutate(
+    n_pictogramas = lengths(strsplit(pictogramas, "; ")),
+    n_frases_h = lengths(strsplit(frases_h, "; "))
+  )
+
+# Conteo de sustancias por pictograma.
+conteo_pictogramas <- as.data.frame(
+  table(unlist(strsplit(sustancias$pictogramas, "; "))),
+  stringsAsFactors = FALSE
+)
+names(conteo_pictogramas) <- c("pictograma", "n")
+conteo_pictogramas <- conteo_pictogramas %>% arrange(desc(n))
+
+cat("--- SUSTANCIAS CLASIFICADAS ---\n")
+print(sustancias[, c("sustancia", "n_pictogramas", "n_frases_h", "palabra_advertencia")])
+cat("\n--- SUSTANCIAS POR PICTOGRAMA ---\n")
+print(conteo_pictogramas)
+cat(sprintf("\nTotal de pictogramas en las 8 sustancias: %d\n",
+            sum(sustancias$n_pictogramas)))
+cat(sprintf("Total de frases H en las 8 sustancias: %d (promedio de %.1f por sustancia)\n",
+            sum(sustancias$n_frases_h), mean(sustancias$n_frases_h)))
+
+# 4. GRÁFICA 1: SUSTANCIAS POR PICTOGRAMA GHS
+# ------------------------------------------------------------------------------
+p1 <- ggplot(conteo_pictogramas, aes(x = reorder(pictograma, n), y = n, fill = pictograma)) +
+  geom_col(width = 0.6, show.legend = FALSE) +
+  geom_text(aes(label = n), hjust = -0.3, fontface = "bold", size = 4) +
+  scale_fill_manual(values = c("Llama" = "#c0392b", "Corrosión" = "#e67e22",
+                               "Peligro para la salud" = "#8e44ad",
+                               "Signo de exclamación" = "#f1c40f",
+                               "Calavera" = "#2c3e50", "Medio ambiente" = "#27ae60")) +
+  labs(
+    title = "Pictogramas GHS presentes en las sustancias del laboratorio",
+    x = "Pictograma GHS",
+    y = "Número de sustancias que lo llevan (conteo)"
+  ) +
+  coord_flip() +
+  ylim(0, max(conteo_pictogramas$n) + 1) +
+  theme_minimal() +
+  theme(
+    plot.title = element_text(size = 13, face = "bold", color = "#2c3e50"),
+    axis.title = element_text(face = "bold", size = 10)
+  )
+
+# 5. GRÁFICA 2: FRASES H POR SUSTANCIA
+# ------------------------------------------------------------------------------
+sust_ord <- sustancias %>% arrange(desc(n_frases_h))
+sust_ord$sustancia <- factor(sust_ord$sustancia, levels = rev(sust_ord$sustancia))
+
+p2 <- ggplot(sust_ord, aes(x = sustancia, y = n_frases_h, fill = n_frases_h)) +
+  geom_col(width = 0.6) +
+  geom_text(aes(label = n_frases_h), hjust = -0.3, fontface = "bold", size = 4) +
+  scale_fill_gradient(low = "#f1c40f", high = "#c0392b", name = "Frases H") +
+  labs(
+    title = "Frases de peligro (H) por sustancia",
+    subtitle = "Cada frase H es un peligro distinto reconocido en la hoja de datos de seguridad",
+    x = "Sustancia",
+    y = "Número de frases H (conteo)"
+  ) +
+  coord_flip() +
+  ylim(0, max(sust_ord$n_frases_h) + 1) +
+  theme_minimal() +
+  theme(
+    plot.title = element_text(size = 13, face = "bold", color = "#2c3e50"),
+    axis.title = element_text(face = "bold", size = 10)
+  )
+
+# 6. RENDERIZADO
+# ------------------------------------------------------------------------------
+print(p1)
+print(p2)
+
+# 7. EXPORTAR LOS GRÁFICOS ------------------------------------------------
+ggsave("ghs_pictogramas.png", plot = p1, width = 10, height = 6, dpi = 300)
+ggsave("ghs_frases_h.png", plot = p2, width = 10, height = 6, dpi = 300)
+
+# 8. INTERPRETACIÓN ---------------------------------------------------------
+# Gráfica 1 (por pictograma): eje x, pictograma GHS; eje y, número de
+# sustancias que lo llevan (conteo, adimensional; una sustancia puede
+# llevar varios pictogramas, por eso la suma es mayor que 8). En total
+# hay 17 pictogramas repartidos en las 8 sustancias. Los más frecuentes
+# son la llama y la corrosión, con 4 sustancias cada uno: la llama en
+# metanol, acetona, tolueno y etanol (los 4 solventes inflamables) y la
+# corrosión en ácido sulfúrico, hidróxido de sodio, hipoclorito de sodio
+# y formaldehído. El pictograma de peligro para la salud aparece en 3
+# (metanol, tolueno y formaldehído), el signo de exclamación en 3
+# (acetona, tolueno y etanol) y la calavera en 2 (metanol y
+# formaldehído). El pictograma de medio ambiente aparece solo en 1
+# (hipoclorito de sodio, H400).
+# Gráfica 2 (frases H por sustancia): eje x, sustancia; eje y, número
+# de frases H (conteo, adimensional). Las 8 sustancias suman 29 frases
+# H, con un promedio de 3.6 por sustancia. El formaldehído acumula 7
+# frases H (H301, H311, H314, H317, H331, H341 y H350): es la sustancia
+# con más peligros distintos, incluyendo toxicidad aguda, corrosión,
+# sensibilización, mutagenicidad y carcinogenicidad. Le siguen el
+# tolueno con 6 y el metanol con 5. El ácido sulfúrico, el hidróxido de
+# sodio, el hipoclorito y el etanol tienen 2 cada uno, y la acetona 3.
+# Las 8 sustancias llevan la palabra de advertencia "Peligro": ninguna
+# queda en "Atención", porque todas tienen al menos un peligro de
+# categoría 1 o 2.
+
+# 9. QUÉ APRENDIMOS ---------------------------------------------------------
+# - El pictograma se lee de un vistazo, pero la frase H dice el peligro
+#   exacto: H314 (quemaduras graves) no es lo mismo que H315
+#   (irritación cutánea), aunque ambas hablen de la piel.
+# - Una sustancia puede llevar varios pictogramas: el metanol lleva 3
+#   (llama, calavera y peligro para la salud) porque es inflamable,
+#   tóxico y daña órganos.
+# - Contar pictogramas y frases H muestra el perfil del laboratorio:
+#   aquí dominan la inflamabilidad y la corrosión, y el formaldehído
+#   es la sustancia con más peligros acumulados.
+# - La clasificación GHS se toma de la hoja de datos de seguridad de
+#   cada sustancia, no de memoria: la etiqueta del frasco debe
+#   coincidir con la sección 2 de su hoja.
