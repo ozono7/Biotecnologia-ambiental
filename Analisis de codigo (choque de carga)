@@ -28,9 +28,20 @@ dilucion   <- 0.1      # Tasa de dilución del sustrato (h^-1)
 
 # 2. SIMULACIÓN NUMÉRICA --------------------------------------------------
 # La biomasa se trata como retenida en el sistema (biopelícula): el balance
-# de biomasa no incluye término de lavado por dilución. Si el sistema fuera
-# un quimiostato de mezcla completa con salida de biomasa, habría que restar
-# la dilución en dB: dB <- (crecimiento - muerte - dilucion) * biomasa[i] * paso.
+# de biomasa no incluye término de lavado por dilución. En un reactor de
+# biopelícula la biomasa está adherida al soporte y no sale con el efluente
+# a la tasa de dilución; el tiempo de retención de sólidos queda desacoplado
+# del tiempo de retención hidráulico (Rittmann y McCarty, Environmental
+# Biotechnology: Principles and Applications, 2001; Metcalf y Eddy,
+# Wastewater Engineering, 5a ed., 2014). La pérdida de biomasa en este
+# modelo simplificado es solo el decaimiento; en una biopelícula real la
+# otra pérdida es el desprendimiento (detachment/sloughing), no el lavado
+# hidráulico. Si el sistema fuera un quimiostato de mezcla completa con
+# salida de biomasa, habría que restar la dilución en dB: dB <- (crecimiento - muerte - dilucion) * biomasa[i] * paso.
+# Con el balance de biopelícula, el estado estacionario lo fija
+# crecimiento = muerte, es decir S = Ks * muerte / (u_max - muerte) = 10 mg/L
+# y X = 108 mg/L con entrada de 100 mg/L; con término de dilución serían
+# S = 90 mg/L y X = 4 mg/L, que es el estado estacionario de un quimiostato.
 n <- length(momentos)
 sustrato <- numeric(n)
 biomasa  <- numeric(n)

@@ -42,6 +42,17 @@ Gi  <- OR * X                   # Flujo de sólidos hacia el efluente (kg/m2-d)
 Gt  <- (Q + Qr) * X / A         # Flujo total de sólidos aplicados (kg/m2-d)
 Xu  <- Gt / u                   # Concentración de lodo en el fondo (kg/m3)
 
+# Los valores calculados (OR = 31.25 m/d, u = 5.0 m/d, Gi = 171.9,
+# Gt = 199.4 kg/m²·d, Xu = 39.9 kg/m³) coinciden con el escenario "Tormenta"
+# del archivo hermano (Q = 25,000, Qr = 4,000, X = 5.5, k = 0.25, A = 800,
+# v0 = 140). Frente a los criterios de diseño de Metcalf y Eddy (Wastewater
+# Engineering, 5a ed., 2014): la tasa de desbordamiento de 31.25 m/d queda
+# por debajo del límite de caudal punta (35-48 m/d), pero el flujo total de
+# sólidos de 199.4 kg/m²·d supera el límite de punta de unos 150 kg/m²·d y
+# Xu = 39.9 kg/m³ queda muy por encima de la concentración operable de lodo
+# espesado (unos 4-12 kg/m³): el escenario es un caso de falla, no un valor
+# de diseño.
+
 # Mostrar resultados en consola
 cat("--- RESULTADOS DEL ESCENARIO DE TORMENTA ---\n")
 cat(sprintf("Tasa de desbordamiento (Overflow): %.2f m/d\n", OR))

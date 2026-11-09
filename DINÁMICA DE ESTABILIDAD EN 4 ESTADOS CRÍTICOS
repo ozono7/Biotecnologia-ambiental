@@ -26,8 +26,9 @@ showtext_auto()
 #2) Un pico de carga orgánica al mediodía que eleva la biomasa a 4.5 kg/m³. 
 #3) El impacto de una tormenta extraordinaria que eleva el flujo a 25,000 m³/d 
 #y degrada la sedimentabilidad (k=0.25), reduciendo la succión a 4,000 m³/d. 
-#4) Una fase de recuperación post-tormenta donde se intenta purgar el exceso 
-#de sólidos incrementando la recirculación a 10,000 m³/d.
+#4) Una fase de recuperación post-tormenta donde se intenta purgar el exceso
+#de sólidos con un caudal de entrada Q = 18,000 m³/d e incrementando la
+#recirculación a 10,000 m³/d.
 #Si en cualquiera de estos estados el flujo total de sólidos excede la 
 #capacidad de transporte, se producirá un vertido masivo hacia el cuerpo 
 #receptor, provocando una eutrofización acelerada y un agotamiento severo 

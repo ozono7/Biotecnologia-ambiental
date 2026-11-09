@@ -50,6 +50,9 @@ escenarios_carnicos <- data.frame(
   v0 = c(160,   160,   90,    110)
 )
 
+# v0 del choque (escenario 3) = 90 m/d: es el valor de la tabla y de la
+# descripción inicial del archivo; 100 m/d no aparece en ningún cálculo.
+
 # 3. FUNCIÓN DE CÁLCULO Y GRAFICACIÓN
 # ------------------------------------------------------------------------------
 crear_grafico_spa <- function(datos) {

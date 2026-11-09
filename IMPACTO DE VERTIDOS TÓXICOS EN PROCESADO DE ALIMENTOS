@@ -29,9 +29,13 @@ showtext_auto()
 #2) Fase de Inhibición Inicial: El ingreso del tóxico altera la estructura del 
 #flóculo, elevando el coeficiente de compactación a k=0.26, manteniendo los 
 #flujos constantes pero reduciendo la velocidad de caída.
-#3) Colapso por Bulking Químico (Colapso): La persistencia del tóxico eleva k a 0.40 y 
-#la concentración de sólidos a 5.5 kg/m³ debido a la muerte celular masiva, 
-#superando los límites físicos de transporte.
+#3) Colapso por Bulking Químico (Colapso): La persistencia del tóxico eleva k a 0.40 y
+#la concentración de sólidos sube a 5.5 kg/m³: el tóxico inhibe la actividad y
+#desflocula el lodo, la sedimentación falla y los sólidos que siguen entrando se
+#acumulan en el sistema porque ya no se evacuan. La muerte celular no crea sólidos:
+#la lisis reduce la biomasa activa y libera su contenido; lo que sube X es la
+#acumulación de sólidos no evacuados, no la muerte en sí. Con X = 5.5 kg/m³ el
+#flujo total de sólidos supera los límites físicos de transporte.
 #4) Protocolo de Rescate: Se reduce el flujo de entrada a 8,000 m³/d y se 
 #incrementa drásticamente la recirculación a 14,000 m³/d para forzar la 
 #evacuación de sólidos y evitar el vertido al receptor.
@@ -136,4 +140,9 @@ ggsave("vertidos_toxicos_4_fases.png", plot = grafico_final, width = 12, height 
 #   quedar por debajo de la curva.
 # - La fase de inhibición es la advertencia: el sistema aún opera, pero con
 #   menos margen, porque la curva ya bajó.
+# - La muerte celular no sube X: el tóxico desflocula el lodo y frena la
+#   evacuación de sólidos, y X sube por acumulación de sólidos no evacuados
+#   (Jenkins et al., Manual on the Causes and Control of Activated Sludge
+#   Bulking, Foaming, and other Solids Separation Problems, 3a ed., 2004;
+#   Metcalf y Eddy, Wastewater Engineering, 5a ed., 2014).
 
