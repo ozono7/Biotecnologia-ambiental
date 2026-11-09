@@ -35,7 +35,7 @@ del Filtro, reduciendo drásticamente la superficie de empaque necesaria.
 
 2.  
 Noten la inversión espacial en el gráfico: la Torre Biológica, al usar 10 metros 
-de altura, ocupa solo ~156 m² de terreno, frente a los >210 m² de los ejes del 
+de altura, ocupa solo ~156 m² de terreno, frente a los 210 m² de los ejes del 
 RBC. ¿En qué escenarios industriales priorizarían la verticalidad de la Torre 
 sobre la disposición horizontal del RBC?
 
@@ -128,3 +128,31 @@ grafico <- ggplot(df_long, aes(x = Tecnologia, y = Metros_Cuadrados, fill = Para
         axis.text.x = element_text(face = "bold"))
 
 print(grafico)
+
+# 5. EXPORTAR EL GRÁFICO ---------------------------------------------------
+ggsave("torre_biologica_vs_rbc.png", plot = grafico, width = 10, height = 6, dpi = 300)
+
+# 6. INTERPRETACIÓN ---------------------------------------------------------
+# El gráfico compara dos tecnologías de biopelícula para el mismo caudal
+# (5,000 m³/d) y la misma carga (1,250 kg DBO_L/d, de los cuales 625 kg/d
+# son solubles). Eje x: tecnología. Eje y: área requerida (m²), con escala
+# propia en cada panel porque las dos magnitudes son muy distintas.
+# La Torre Biológica necesita 312,500 m² de biopelícula (a 4 kg DBO_L por
+# cada 1,000 m² y día) frente a 69,444 m² del RBC (a 9 kg DBO_L soluble por
+# cada 1,000 m² y día): el RBC aprovecha mejor cada metro cuadrado porque
+# el giro mecánico transfiere más oxígeno que el flujo por gravedad.
+# Pero la huella en planta se invierte: la torre, con 10 m de altura y un
+# medio de 200 m²/m³, ocupa solo 156.25 m² de terreno, mientras los 7 ejes
+# del RBC ocupan 210 m². La torre gana en verticalidad lo que pierde en
+# superficie de empaque.
+
+# 7. QUÉ APRENDIMOS ---------------------------------------------------------
+# - La carga superficial manda en la superficie de biopelícula: duplicar la
+#   carga de diseño reduce a la mitad el área necesaria.
+# - La huella en planta no depende solo del área de biopelícula: la altura
+#   de la torre (10 m) y el área específica del medio (200 m²/m³) la
+#   reducen, mientras el RBC paga su eficiencia con ejes horizontales.
+# - El RBC usa la carga soluble (625 kg/d) y la torre la carga total
+#   (1,250 kg/d): compararlas con la misma carga sería un error.
+# - El número de ejes se redondea hacia arriba (6.94 ejes no existen: son 7),
+#   y eso fija la huella en 210 m².

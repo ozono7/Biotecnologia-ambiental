@@ -12,14 +12,130 @@
 # ==========================================================================
 
 
+# 1. PREPARACIÓN DE ENTORNO
+# ------------------------------------------------------------------------------
+if (!require("pacman")) install.packages("pacman")
+pacman::p_load(ggplot2, dplyr, showtext, patchwork)
+
+font_add_google("Inter", "modern_sans")
+showtext_auto()
+
+#La estabilidad del sistema de lodos activados en una planta de alimentos se
+#ve amenazada por el ingreso accidental de desinfectantes clorados usados en
+#la limpieza de líneas. Un sedimentador de 800 m² debe gestionar la biomasa
+#bajo 4 condiciones críticas:
+#1) Estado Nominal: Flujo de 15,000 m³/d con recirculación de 7,500 m³/d y
+#biomasa de 3.5 kg/m³. El lodo sedimenta bien (k=0.18).
+#2) Presencia de Tóxico: El ingreso del desinfectante altera la estructura
+#del flóculo, elevando el coeficiente de compactación a k=0.28, manteniendo
+#los flujos y la biomasa constantes pero reduciendo la velocidad de caída.
+#3) Bulking Severo: La persistencia del desinfectante eleva k a 0.35 y la
+#concentración de sólidos a 5.0 kg/m³, superando los límites físicos de
+#transporte.
+#4) Control de Emergencia: Se reduce el flujo de entrada a 10,000 m³/d y se
+#incrementa la recirculación a 12,000 m³/d para forzar la evacuación de
+#sólidos y evitar el vertido al receptor.
+#Si el flujo total de sólidos excede la capacidad de transporte, se producirá
+#una pérdida masiva de biomasa y el incumplimiento de la normativa ambiental.
+#Explique el comportamiento operativo ante estos eventos de toxicidad.
+
 # 2. PARÁMETROS
 # ------------------------------------------------------------------------------
-A  <- 800
-v0 <- 140
+A  <- 800         # Área (m2)
+v0 <- 140         # Velocidad máxima (m/d)
 
-> escenarios_industriales
-  ID             Estado     Q    Qr   X    k
-1  1            Nominal 15000  7500 3.5 0.18
-2  2   Presencia Tóxico 15000  7500 3.5 0.28
-3  3     Bulking Severo 15000  7500 5.0 0.35
-4  4 Control Emergencia 10000 12000 4.5 0.35
+escenarios_industriales <- data.frame(
+  ID = 1:4,
+  Estado = c("Nominal", "Presencia Tóxico", "Bulking Severo", "Control Emergencia"),
+  Q  = c(15000, 15000, 15000, 10000),
+  Qr = c(7500,  7500,  7500,  12000),
+  X  = c(3.5,   3.5,   5.0,   4.5),
+  k  = c(0.18,  0.28,  0.35,  0.35)
+)
+
+# 3. FUNCIÓN DE CÁLCULO Y GRAFICACIÓN
+# ------------------------------------------------------------------------------
+crear_grafico_spa <- function(datos) {
+  # Ecuaciones
+  OR  <- datos$Q / A
+  u   <- datos$Qr / A
+  Gi  <- OR * datos$X
+  Gt  <- (datos$Q + datos$Qr) * datos$X / A
+  Xu  <- Gt / u
+
+  # Curva de Vesilind específica
+  df_curva <- data.frame(Xb = seq(0, 25, length.out = 300)) %>%
+    mutate(Gs = v0 * exp(-datos$k * Xb) * Xb)
+
+  ggplot(df_curva, aes(x = Xb, y = Gs)) +
+    geom_area(fill = "#8e44ad", alpha = 0.1) + # Tinte púrpura (tóxico/químico)
+    geom_line(color = "#2c3e50", linewidth = 1) +
+    # Línea de transporte
+    annotate("segment", x = 0, y = Gt, xend = Xu, yend = 0, color = "#d35400", linewidth = 0.8) +
+    # Línea de desbordamiento
+    geom_abline(intercept = 0, slope = OR, linetype = "dashed", color = "#7f8c8d") +
+    # Punto de estado
+    annotate("point", x = datos$X, y = Gi, size = 3, shape = 21, fill = "#c0392b", color = "white") +
+    labs(
+      title = paste("Fase", datos$ID, ":", datos$Estado),
+      subtitle = sprintf("X:%.1f | k:%.2f | Gt:%.1f | Xu:%.1f", datos$X, datos$k, Gt, Xu),
+      x = "Conc (kg/m³)", y = "Flujo (kg/m²·d)"
+    ) +
+    theme_minimal(base_family = "modern_sans") +
+    theme(
+      plot.title = element_text(size = 10, face = "bold", color = "#4b0082"),
+      axis.title = element_text(size = 7, face = "bold"),
+      panel.background = element_rect(fill = "#fdfaff", color = NA)
+    )
+}
+
+# 4. GENERACIÓN DE OBJETOS
+# ------------------------------------------------------------------------------
+g1 <- crear_grafico_spa(escenarios_industriales[1,])
+g2 <- crear_grafico_spa(escenarios_industriales[2,])
+g3 <- crear_grafico_spa(escenarios_industriales[3,])
+g4 <- crear_grafico_spa(escenarios_industriales[4,])
+
+# 5. RENDERIZADO FINAL
+# ------------------------------------------------------------------------------
+grafico_final <- (g1 | g2) / (g3 | g4) +
+  plot_annotation(
+    title = 'FALLA DE SEDIMENTACIÓN POR INGRESO DE DESINFECTANTES',
+    subtitle = 'Análisis de Puntos de Estado bajo estrés por desinfectantes clorados',
+    theme = theme(plot.title = element_text(size = 14, face = "bold", hjust = 0.5))
+  )
+
+print(grafico_final)
+
+# 6. EXPORTAR EL GRÁFICO ---------------------------------------------------
+ggsave("desinfectantes_4_estados.png", plot = grafico_final, width = 12, height = 8, dpi = 300)
+
+# 7. INTERPRETACIÓN ---------------------------------------------------------
+# Cada panel muestra el análisis de punto de estado de una fase.
+# Eje x: concentración de sólidos X (kg/m³). Eje y: flujo de sólidos (kg/m²·d).
+# La curva es el flujo gravitatorio Gs = v0 * X * exp(-k * X); la línea
+# punteada es el desbordamiento (pendiente OR = Q / A); la línea naranja es
+# el transporte hacia el fondo, de (0, Gt) a (Xu, 0); el punto rojo es el
+# punto de estado (X, Gi). El sistema falla cuando la línea de transporte
+# queda por encima de la curva gravitatoria.
+# Con los datos del script: Nominal Gt = 98.4 y Xu = 10.5 kg/m³ (opera
+# bien); Presencia de Tóxico Gt = 98.4 y Xu = 10.5 kg/m³ (la curva baja por
+# k = 0.28, pero la línea de transporte sigue por debajo y el sistema
+# aguanta); Bulking Severo Gt = 140.6 y Xu = 15.0 kg/m³ (la línea de
+# transporte supera apenas la curva, por unos 5 kg/m²·d: el sistema está al
+# límite y falla); Control de Emergencia Gt = 123.8 y Xu = 8.25 kg/m³ (al
+# bajar Q a 10,000 m³/d y subir Qr a 12,000 m³/d, la línea vuelve a quedar
+# por debajo de la curva y el sistema se recupera).
+
+# 8. QUÉ APRENDIMOS ---------------------------------------------------------
+# - El desinfectante no cambia los caudales: cambia k (0.18 a 0.35), es
+#   decir, la capacidad del lodo para sedimentar. Por eso la curva
+#   gravitatoria se aplasta y el mismo flujo de sólidos deja de ser
+#   transportable.
+# - El bulking severo es un fallo al límite: la línea de transporte supera
+#   la curva por poco, así que cualquier empeoramiento adicional (más
+#   sólidos o menos recirculación) agrava el vertido.
+# - El control de emergencia funciona porque subir la recirculación a
+#   12,000 m³/d sube la velocidad de succión u a 15.0 m/d, con lo que Xu
+#   baja de 15.0 a 8.25 kg/m³ y la línea de transporte se acorta hasta
+#   quedar por debajo de la curva.

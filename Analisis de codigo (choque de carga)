@@ -27,6 +27,10 @@ eficiencia <- 0.6      # Rendimiento celular (Y)
 dilucion   <- 0.1      # Tasa de dilución del sustrato (h^-1)
 
 # 2. SIMULACIÓN NUMÉRICA --------------------------------------------------
+# La biomasa se trata como retenida en el sistema (biopelícula): el balance
+# de biomasa no incluye término de lavado por dilución. Si el sistema fuera
+# un quimiostato de mezcla completa con salida de biomasa, habría que restar
+# la dilución en dB: dB <- (crecimiento - muerte - dilucion) * biomasa[i] * paso.
 n <- length(momentos)
 sustrato <- numeric(n)
 biomasa  <- numeric(n)
@@ -54,14 +58,14 @@ for (i in 1:(n - 1)) {
 df <- data.frame(Tiempo = momentos, Sustrato = sustrato, Biomasa = biomasa)
 
 # Factor de escala para el eje secundario (Biomasa suele ser mayor)
-mult_factor <- 5 
+mult_factor <- 5
 
-ggplot(df, aes(x = Tiempo)) +
+grafico <- ggplot(df, aes(x = Tiempo)) +
   # Curva de Sustrato (Eje Principal)
-  geom_line(aes(y = Sustrato, color = "Sustrato"), size = 1.2) +
-  
+  geom_line(aes(y = Sustrato, color = "Sustrato"), linewidth = 1.2) +
+
   # Curva de Biomasa (Escalada para el Eje secundario)
-  geom_line(aes(y = Biomasa / mult_factor, color = "Biomasa"), size = 1.2) +
+  geom_line(aes(y = Biomasa / mult_factor, color = "Biomasa"), linewidth = 1.2) +
   
   # Configuración de Ejes
   scale_y_continuous(
@@ -84,7 +88,7 @@ ggplot(df, aes(x = Tiempo)) +
   ) +
   
   # Refinamiento del Tema
-  theme_bw() + 
+  theme_bw() +
   theme(
     legend.position = "bottom",
     plot.title = element_text(face = "bold", size = 14),
@@ -92,3 +96,31 @@ ggplot(df, aes(x = Tiempo)) +
     axis.title.y.right = element_text(color = "#27AE60"),
     axis.title.y.left = element_text(color = "#2C3E50")
   )
+
+print(grafico)
+
+# 4. EXPORTAR EL GRÁFICO ---------------------------------------------------
+ggsave("choque_de_carga.png", plot = grafico, width = 10, height = 6, dpi = 300)
+
+# 5. INTERPRETACIÓN ---------------------------------------------------------
+# El gráfico muestra la respuesta del sistema al choque de carga en t = 30 h.
+# Eje x: tiempo de operación (h). Eje izquierdo: sustrato (mg/L). Eje derecho:
+# biomasa (mg/L). La línea de biomasa se divide entre 5 solo para dibujarla en
+# la misma escala; el eje derecho devuelve sus valores reales (mg/L).
+# Con los parámetros del script, el sustrato sube al inicio hasta unos 21 mg/L
+# y luego baja hacia unos 10 mg/L, mientras la biomasa crece de 50 mg/L hacia
+# unos 108 mg/L antes del choque. Al subir la carga de entrada de 100 a
+# 150 mg/L en t = 30 h, el sustrato apenas se mueve (sigue cerca de 10 mg/L)
+# y la biomasa sube hasta unos 168 mg/L: el sistema absorbe el choque
+# produciendo más biomasa en lugar de acumular sustrato.
+# La línea vertical marca el momento del cambio de carga.
+
+# 6. QUÉ APRENDIMOS ---------------------------------------------------------
+# - Un choque de carga no siempre se ve como un pico de sustrato: si la
+#   biomasa tiene capacidad de crecimiento, el sustrato se mantiene bajo y
+#   el efecto aparece como más biomasa.
+# - El estado estacionario lo fija la cinética (cuando el crecimiento iguala
+#   al decaimiento), no la carga de entrada: por eso el sustrato se estabiliza
+#   cerca del mismo valor antes y después del choque.
+# - La integración de Euler con paso de 0.1 h es estable con estos parámetros
+#   y el sustrato nunca toma valores negativos.

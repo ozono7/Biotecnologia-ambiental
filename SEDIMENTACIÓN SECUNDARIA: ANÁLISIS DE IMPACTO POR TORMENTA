@@ -23,18 +23,37 @@ showtext_auto()
 
 # 2. PARÁMETROS OPERATIVOS (ESCENARIO CARGA ALTA)
 # ------------------------------------------------------------------------------
-
-
+# Escenario de tormenta: el flujo sube a 25,000 m³/d, la succión baja a
+# 4,000 m³/d y la sedimentabilidad se degrada (k = 0.25) mientras la biomasa
+# sube a 5.5 kg/m³. Son los mismos valores del escenario "Tormenta" del
+# archivo "DINÁMICA DE ESTABILIDAD EN 4 ESTADOS CRÍTICOS" (mismo
+# sedimentador de 800 m²), para que ambos análisis sean comparables.
+A  <- 800        # Área superficial del sedimentador (m2)
+Q  <- 25000      # Caudal de entrada durante la tormenta (m3/d)
+Qr <- 4000       # Caudal de recirculación de lodos (m3/d)
+X  <- 5.5        # Concentración de sólidos en el licor mezcla (kg/m3)
+v0 <- 140        # Velocidad máxima de sedimentación teórica (m/d)
+k  <- 0.25       # Coeficiente de compactación del lodo (m3/kg)
 
 # Cálculos (usar esta nomenclatura para que los graficos funcionen)
-OR  <-                      # Tasa de desbordamiento (m/d)              
-u   <-                    # Velocidad del flujo inferior o succión (m/d)            
-Gi  <-                     # Flujo de sólidos hacia el efluente (kg/m2-d) 
-Gt  <-            # Flujo total de sólidos aplicados (kg/m2-d)  
-Xu  <-                      # Concentración de lodo en el fondo (kg/m3)
+OR  <- Q / A                    # Tasa de desbordamiento (m/d)
+u   <- Qr / A                   # Velocidad del flujo inferior o succión (m/d)
+Gi  <- OR * X                   # Flujo de sólidos hacia el efluente (kg/m2-d)
+Gt  <- (Q + Qr) * X / A         # Flujo total de sólidos aplicados (kg/m2-d)
+Xu  <- Gt / u                   # Concentración de lodo en el fondo (kg/m3)
 
-# Dataframe para la curva de flujo gravitatorio 
-df_spa <- data.frame(Xb = seq(0, 20, length.out = 500)) %>%
+# Mostrar resultados en consola
+cat("--- RESULTADOS DEL ESCENARIO DE TORMENTA ---\n")
+cat(sprintf("Tasa de desbordamiento (Overflow): %.2f m/d\n", OR))
+cat(sprintf("Velocidad de succión (Underflow): %.2f m/d\n", u))
+cat(sprintf("Flujo de sólidos en el punto de estado: %.2f kg/m2-d\n", Gi))
+cat(sprintf("Flujo total de sólidos aplicados: %.2f kg/m2-d\n", Gt))
+cat(sprintf("Concentración de lodo espesado (Fondo): %.2f kg/m3\n", Xu))
+
+# Dataframe para la curva de flujo gravitatorio
+# El rango llega a 45 kg/m³ para que se vea completo el extremo de la línea
+# de transporte (Xu = 39.9 kg/m³).
+df_spa <- data.frame(Xb = seq(0, 45, length.out = 500)) %>%
   mutate(Gs = v0 * exp(-k * Xb) * Xb)
 
 # 3. GRÁFICA P1: ANÁLISIS DE PUNTO DE ESTADO 
@@ -100,3 +119,37 @@ p2 <- ggplot() +
 # ------------------------------------------------------------------------------
 print(p1)
 print(p2)
+
+# 6. EXPORTAR LOS GRÁFICOS ------------------------------------------------
+ggsave("tormenta_punto_de_estado.png", plot = p1, width = 10, height = 6, dpi = 300)
+ggsave("tormenta_esquema.png", plot = p2, width = 10, height = 6, dpi = 300)
+
+# 7. INTERPRETACIÓN ---------------------------------------------------------
+# Gráfica P1 (punto de estado): eje x, concentración de sólidos (kg/m³);
+# eje y, flujo de sólidos (kg/m²·d). La curva es el flujo gravitatorio
+# Gs = v0 * X * exp(-k * X); la línea punteada es el desbordamiento
+# (pendiente OR = 31.25 m/d); la línea naranja es el transporte hacia el
+# fondo, de (0, Gt) a (Xu, 0); el punto rojo es el punto de estado
+# (X = 5.5 kg/m³, Gi = 171.9 kg/m²·d).
+# Con los datos del script: Gt = 199.4 kg/m²·d y Xu = 39.9 kg/m³. La línea
+# de transporte queda por encima de la curva gravitatoria en gran parte del
+# recorrido (hasta unos 81 kg/m²·d por encima): el sedimentador no puede
+# evacuar los sólidos a esa velocidad, los sólidos se acumulan y se produce
+# el vertido hacia el cuerpo receptor. La tormenta falla porque combina tres
+# efectos: más caudal (OR = 31.25 m/d), menos succión (u = 5.0 m/d) y peor
+# sedimentabilidad (k = 0.25).
+# Gráfica P2 (esquema): muestra dónde ocurre cada flujo. La alimentación
+# (Q + Qr) entra por el cilindro central, el efluente clarificado sale por
+# los vertederos perimetrales y el lodo se extrae por el fondo. Durante la
+# tormenta, el manto de lodos sube porque entra más sólido del que se
+# extrae, hasta alcanzar los vertederos.
+
+# 8. QUÉ APRENDIMOS ---------------------------------------------------------
+# - Un sedimentador falla cuando la línea de transporte supera la curva
+#   gravitatoria, no cuando el caudal sube sin más: aquí fallan a la vez el
+#   caudal alto, la succión baja y el lodo degradado.
+# - Xu = 39.9 kg/m³ es la señal numérica de la falla: una concentración de
+#   lodo espesado así de alta no es operable en la práctica.
+# - El punto de estado (5.5, 171.9) queda por debajo de la curva, así que
+#   la falla no se ve en el punto de operación: se ve en el resto de la
+#   línea de transporte, donde la curva cae por debajo de ella.

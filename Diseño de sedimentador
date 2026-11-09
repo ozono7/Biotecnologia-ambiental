@@ -12,7 +12,12 @@
 # ==========================================================================
 
 
-# 1. PARÁMETROS OPERATIVOS Y DE DISEÑO
+# 1. PREPARACIÓN DE ENTORNO
+# ------------------------------------------------------------------------------
+if (!require("pacman")) install.packages("pacman")
+pacman::p_load(ggplot2, dplyr)
+
+# 2. PARÁMETROS OPERATIVOS Y DE DISEÑO
 Q  <- 10000      # Caudal de entrada de agua residual (m3/d)
 Qr <- 5000       # Caudal de recirculación de lodos (m3/d)
 X  <- 3.0        # Concentración de Sólidos Suspendidos en el licor mezcla (kg/m3 o g/L)
@@ -22,7 +27,7 @@ A  <- 600        # Área superficial del sedimentador (m2)
 v0 <- 150        # Velocidad máxima de sedimentación teórica (m/d)
 k  <- 0.15       # Coeficiente de compactación del lodo (m3/kg)
 
-# 2. CÁLCULOS HIDRÁULICOS Y DE FLUJO
+# 3. CÁLCULOS HIDRÁULICOS Y DE FLUJO
 overflow_rate <- Q / A                 # Tasa de desbordamiento (m/d)
 u_underflow   <- Qr / A                # Velocidad del flujo inferior o succión (m/d)
 G_in          <- overflow_rate * X     # Flujo de sólidos hacia el efluente (kg/m2-d)
@@ -35,69 +40,104 @@ cat(sprintf("Tasa de desbordamiento (Overflow): %.2f m/d\n", overflow_rate))
 cat(sprintf("Flujo de sólidos total aplicado: %.2f kg/m2-d\n", G_T))
 cat(sprintf("Concentración de lodo espesado (Fondo): %.2f kg/m3\n", X_u))
 
-# 3. GRÁFICA 1: ANÁLISIS DE PUNTO DE ESTADO (CINÉTICA)
-par(mfrow=c(1,1), mar=c(5,5,4,2))
+# 4. GRÁFICA 1: ANÁLISIS DE PUNTO DE ESTADO (CINÉTICA)
+# ------------------------------------------------------------------------------
 X_seq <- seq(0, 20, by = 0.1)
 
 # Curva de flujo de sedimentación por gravedad
-G_s <- v0 * exp(-k * X_seq) * X_seq 
+df_spa <- data.frame(Xb = X_seq) %>%
+  mutate(Gs = v0 * exp(-k * Xb) * Xb)
 
-plot(X_seq, G_s, type = "l", lwd = 3, col = "blue",
-     xlab = expression("Concentración de sólidos (" * X[b] * ") [kg/m"^3 * "]"),
-     ylab = "Flujo de sólidos [kg/m2-d]",
-     main = "Análisis de punto de estado (State-Point Analysis)",
-     ylim = c(0, max(G_s, G_T) + 20))
+p1 <- ggplot(df_spa, aes(x = Xb, y = Gs)) +
+  geom_area(fill = "#2980b9", alpha = 0.15) +
+  geom_line(color = "#2c3e50", linewidth = 1.3) +
+  # Línea de desbordamiento (pendiente = tasa de desbordamiento)
+  geom_abline(intercept = 0, slope = overflow_rate, linetype = "dashed", color = "#7f8c8d") +
+  # Línea de flujo inferior (de (0, G_T) a (X_u, 0))
+  annotate("segment", x = 0, y = G_T, xend = X_u, yend = 0, color = "#e67e22", linewidth = 1.1) +
+  # Punto de estado
+  annotate("point", x = X, y = G_in, size = 4, shape = 21, fill = "#e74c3c", color = "white") +
+  annotate("text", x = X, y = G_in + 15, label = "Punto de estado", fontface = "bold", color = "#e74c3c") +
+  annotate("text", x = X_u, y = 10, label = sprintf("X_u = %.1f", X_u), color = "#e67e22", fontface = "bold", vjust = -1) +
+  annotate("text", x = 2, y = G_T + 5, label = sprintf("Flujo Total = %.1f", G_T), color = "#e67e22", hjust = 0) +
+  labs(
+    title = "Análisis de punto de estado (State-Point Analysis)",
+    x = "Concentración de sólidos (X) [kg/m³]",
+    y = "Flujo de sólidos [kg/m²·d]"
+  ) +
+  coord_cartesian(ylim = c(0, max(df_spa$Gs, G_T) + 20)) +
+  theme_minimal() +
+  theme(
+    plot.title = element_text(size = 15, face = "bold", color = "#2c3e50"),
+    panel.background = element_rect(fill = "#f4faff", color = NA),
+    axis.title = element_text(face = "bold", size = 9)
+  )
 
-# Línea de desbordamiento (Overflow line)
-lines(X_seq, overflow_rate * X_seq, lty = 2, lwd = 2, col = "gray50")
+# 5. GRÁFICA 2: ESQUEMA ESTRUCTURAL DEL SEDIMENTADOR
+# ------------------------------------------------------------------------------
+p2 <- ggplot() +
+  # Estructura del sedimentador
+  geom_path(aes(x = c(10, 10, 45, 55, 90, 90),
+                y = c(50, 15, 0, 0, 15, 50)),
+            color = "#34495e", linewidth = 1.2) +
 
-# Dibujar el Punto de Estado
-points(X, G_in, pch = 19, col = "red", cex = 2)
-text(X, G_in + 15, "Punto de estado", font = 2, col = "red")
+  # Zonas internas
+  geom_rect(aes(xmin = 10, xmax = 90, ymin = 28, ymax = 48), fill = "#3498db", alpha = 0.1) +
+  geom_polygon(aes(x = c(10, 45, 55, 90, 90, 10),
+                   y = c(15, 0, 0, 15, 25, 25)), fill = "#34495e", alpha = 0.05) +
 
-# Línea de flujo inferior (Underflow line)
-lines(c(0, X_u), c(G_T, 0), lwd = 2, col = "darkgreen")
-text(X_u, 10, sprintf("X_u = %.1f", X_u), col = "darkgreen", pos = 3, font=2)
-text(2, G_T + 5, sprintf("Flujo Total = %.1f", G_T), col = "darkgreen", pos = 4)
+  # Flujos (Vectores)
+  annotate("segment", x = 50, y = 60, xend = 50, yend = 45, arrow = arrow(length = unit(0.25, "cm")), linewidth = 1, color = "#2c3e50") +
+  annotate("segment", x = 50, y = 0, xend = 50, yend = -12, arrow = arrow(length = unit(0.25, "cm")), linewidth = 1, color = "#e67e22") +
+  annotate("segment", x = 90, y = 48, xend = 110, yend = 48, arrow = arrow(length = unit(0.25, "cm")), linewidth = 1, color = "#2980b9") +
 
-# 4. GRÁFICA 2: DIBUJO DEL SEDIMENTADOR
-# Abrimos una nueva ventana gráfica o pausamos (en RStudio se verá en la pestaña Plots)
-dev.new() # Crear nueva ventana para el esquema
-par(mar=c(1,1,3,1))
-plot(c(0, 100), c(0, 60), type = "n", axes = FALSE, xlab = "", ylab = "",
-     main = "Esquema Estructural del Sedimentador Circular")
+  # Etiquetas
+  annotate("text", x = 50, y = 65, label = "ALIMENTACIÓN (Q + QR)", fontface = "bold", size = 3.5) +
+  annotate("text", x = 112, y = 52, label = "EFLUENTE CLARIFICADO", color = "#2980b9", size = 3.5, hjust = 0.5) +
+  annotate("text", x = 50, y = -18, label = "EXTRACCIÓN DE LODOS", color = "#e67e22", size = 3.5) +
+  annotate("text", x = 25, y = 20, label = "  MANTO DE LODOS", size = 3, color = "#7f8c8d") +
 
-# Fondo cónico del tanque
-polygon(c(10, 45, 55, 90), c(15, 0, 0, 15), col = "gray80", lwd = 3)
+  # Ajuste de límites
+  xlim(0, 140) + ylim(-25, 75) +
+  coord_fixed() +
+  theme_void() +
+  labs(title = "ESQUEMA OPERATIVO DEL SEDIMENTADOR") +
+  theme(
+    plot.title = element_text(size = 13, face = "bold", hjust = 0.5, color = "#2c3e50", margin = margin(t = 10, b = 10))
+  )
 
-# Paredes laterales
-rect(10, 15, 90, 50, col = "aliceblue", lwd = 3)
+# 6. RENDERIZADO
+# ------------------------------------------------------------------------------
+print(p1)
+print(p2)
 
-# Manto de lodos (Sludge blanket)
-polygon(c(10, 45, 55, 90, 90, 10), c(15, 0, 0, 15, 25, 25), col = "tan4")
+# 7. EXPORTAR LOS GRÁFICOS ------------------------------------------------
+ggsave("sedimentador_punto_de_estado.png", plot = p1, width = 10, height = 6, dpi = 300)
+ggsave("sedimentador_esquema.png", plot = p2, width = 10, height = 6, dpi = 300)
 
-# Agua clarificada
-rect(10, 25, 90, 48, col = adjustcolor("cadetblue1", alpha.f = 0.6), border=NA)
+# 8. INTERPRETACIÓN ---------------------------------------------------------
+# Gráfica 1 (punto de estado): eje x, concentración de sólidos X (kg/m³);
+# eje y, flujo de sólidos (kg/m²·d). La curva es el flujo gravitatorio
+# Gs = v0 * X * exp(-k * X); la línea punteada es el desbordamiento
+# (pendiente OR = 16.67 m/d); la línea naranja es el transporte hacia el
+# fondo, de (0, Gt) a (Xu, 0); el punto rojo es el punto de estado
+# (X = 3.0 kg/m³, Gi = 50.0 kg/m²·d).
+# Con los datos del script: Gt = 75.0 kg/m²·d y Xu = 9.0 kg/m³. La línea de
+# transporte queda por debajo de la curva gravitatoria en todo el recorrido
+# (la curva llega a 367.9 kg/m²·d en X = 6.7 kg/m³): el sedimentador opera
+# bien y tiene margen, porque el lodo sedimenta bien (k = 0.15) y el flujo
+# total aplicado es bajo frente a la capacidad de transporte.
+# Gráfica 2 (esquema): muestra dónde ocurre cada flujo. La alimentación
+# (Q + Qr) entra por el cilindro central, el efluente clarificado sale por
+# los vertederos perimetrales y el lodo espesado (Xu = 9.0 kg/m³) se extrae
+# por el fondo desde el manto de lodos.
 
-# Cilindro de alimentación central (Center well)
-rect(40, 30, 60, 55, col = "gray60", lwd = 2)
-
-# Vertederos perimetrales (Weirs)
-rect(5, 45, 10, 50, col = "steelblue", lwd=2)
-rect(90, 45, 95, 50, col = "steelblue", lwd=2)
-
-# Flechas y etiquetas
-arrows(50, 60, 50, 50, lwd = 3, col = "black", length = 0.15)
-text(50, 58, "Alimentación (Q + Qr)", font = 2, pos = 4)
-
-text(50, 12, "Manto de lodos", col = "white", font = 2, cex = 1.2)
-
-arrows(50, 0, 50, -5, lwd = 3, col = "darkred", length = 0.15)
-text(50, 3, "Extracción de lodo (Qu)", font = 2, col = "black", pos = 4)
-
-text(25, 38, "Zona de clarificación\n(Baja turbidez)", font = 2, col = "darkblue")
-
-arrows(10, 48, 2, 48, lwd = 2, col = "blue", length = 0.1)
-arrows(90, 48, 98, 48, lwd = 2, col = "blue", length = 0.1)
-text(5, 52, "Efluente (Qe)", font = 2, col = "blue")
-text(95, 52, "Efluente (Qe)", font = 2, col = "blue")
+# 9. QUÉ APRENDIMOS ---------------------------------------------------------
+# - El diseño se verifica con el punto de estado: no basta con calcular
+#   OR = Q / A; hay que comprobar que la línea de transporte no supere la
+#   curva gravitatoria.
+# - Xu = Gt / u sale de los datos: con Q = 10,000 y Qr = 5,000 m³/d sobre
+#   600 m², el lodo se espesa de 3.0 a 9.0 kg/m³ en el fondo.
+# - El margen de este diseño es amplio (Gt = 75 frente a una capacidad
+#   máxima de 367.9 kg/m²·d): el sedimentador aguantaría más carga o un lodo
+#   peor antes de fallar.

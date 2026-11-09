@@ -59,7 +59,9 @@ crear_grafico_spa <- function(datos) {
   Xu  <- Gt / u
   
   # Curva de flujo gravitatorio específica del escenario
-  df_curva <- data.frame(Xb = seq(0, 25, length.out = 300)) %>%
+  # El rango llega a 45 kg/m³ para que se vea completo el extremo de la línea
+  # de transporte (Xu = 39.9 kg/m³ en el escenario de tormenta).
+  df_curva <- data.frame(Xb = seq(0, 45, length.out = 300)) %>%
     mutate(Gs = v0 * exp(-datos$k * Xb) * Xb)
   
   ggplot(df_curva, aes(x = Xb, y = Gs)) +
@@ -73,8 +75,8 @@ crear_grafico_spa <- function(datos) {
     annotate("point", x = datos$X, y = Gi, size = 3, shape = 21, fill = "#e74c3c", color = "white") +
     labs(
       title = paste(datos$ID, "-", datos$Estado),
-      subtitle = sprintf("Q:%s | k:%s | Gt:%.1f", datos$Q, datos$k, Gt),
-      x = "Conc (kg/m³)", y = "Flujo"
+      subtitle = sprintf("Q:%s | Qr:%s | X:%.1f | k:%.2f | Gt:%.1f | Xu:%.1f", datos$Q, datos$Qr, datos$X, datos$k, Gt, Xu),
+      x = "Conc (kg/m³)", y = "Flujo (kg/m²·d)"
     ) +
     theme_minimal(base_family = "modern_sans") +
     theme(
@@ -93,10 +95,40 @@ g4 <- crear_grafico_spa(escenarios[4,])
 
 # 5. RENDERIZADO (DISTRIBUCIÓN 2x2)
 # ------------------------------------------------------------------------------
-(g1 | g2) / (g3 | g4) + 
+grafico_final <- (g1 | g2) / (g3 | g4) +
   plot_annotation(
     title = 'ANÁLISIS TEMPORAL DE PUNTO DE ESTADO',
     subtitle = 'Evaluación de la resiliencia del sedimentador ante eventos dinámicos',
     theme = theme(plot.title = element_text(size = 16, face = "bold", hjust = 0.5))
   )
+
+print(grafico_final)
+
+# 6. EXPORTAR EL GRÁFICO ---------------------------------------------------
+ggsave("estabilidad_4_estados.png", plot = grafico_final, width = 12, height = 8, dpi = 300)
+
+# 7. INTERPRETACIÓN ---------------------------------------------------------
+# Cada panel muestra el análisis de punto de estado de un escenario.
+# Eje x: concentración de sólidos X (kg/m³). Eje y: flujo de sólidos (kg/m²·d).
+# La curva es el flujo gravitatorio Gs = v0 * X * exp(-k * X); la línea
+# punteada es el desbordamiento (pendiente OR = Q / A); la línea naranja es
+# el transporte hacia el fondo, de (0, Gt) a (Xu, 0); el punto rojo es el
+# punto de estado (X, Gi). El sistema falla cuando la línea de transporte
+# queda por encima de la curva gravitatoria: el lodo no puede evacuarse a
+# esa velocidad y los sólidos se acumulan.
+# Con los datos del script: Basal Gt = 98.4 y Xu = 10.5 kg/m³ (opera bien);
+# Pico Orgánico Gt = 126.6 y Xu = 13.5 kg/m³ (opera bien); Tormenta
+# Gt = 199.4 y Xu = 39.9 kg/m³ (la línea de transporte supera la curva: el
+# sedimentador no puede evacuar los sólidos y se produce el vertido);
+# Recuperación Gt = 140.0 y Xu = 11.2 kg/m³ (vuelve a operar bien).
+
+# 8. QUÉ APRENDIMOS ---------------------------------------------------------
+# - La tormenta no solo sube el caudal: al bajar la recirculación a
+#   4,000 m³/d y empeorar la sedimentabilidad (k = 0.25), el flujo total de
+#   sólidos (Gt = 199.4 kg/m²·d) supera lo que la gravedad puede transportar.
+# - La recuperación funciona porque subir la recirculación a 10,000 m³/d
+#   baja Xu de 39.9 a 11.2 kg/m³ y la línea de transporte vuelve a quedar
+#   por debajo de la curva gravitatoria.
+# - Xu es la concentración de lodo espesado en el fondo: valores muy altos
+#   (como 39.9 kg/m³) no son operables en la práctica y señalan la falla.
 

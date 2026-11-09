@@ -98,10 +98,42 @@ g4 <- crear_grafico_spa(escenarios_alimentos[4,])
 
 # 5. RENDERIZADO FINAL
 # ------------------------------------------------------------------------------
-(g1 | g2) / (g3 | g4) + 
+grafico_final <- (g1 | g2) / (g3 | g4) +
   plot_annotation(
     title = 'DINÁMICA DE FALLA POR TOXICIDAD EN PLANTA DE ALIMENTOS',
     subtitle = 'Análisis de Puntos de Estado bajo estrés por amonios cuaternarios',
     theme = theme(plot.title = element_text(size = 14, face = "bold", hjust = 0.5))
   )
+
+print(grafico_final)
+
+# 6. EXPORTAR EL GRÁFICO ---------------------------------------------------
+ggsave("vertidos_toxicos_4_fases.png", plot = grafico_final, width = 12, height = 8, dpi = 300)
+
+# 7. INTERPRETACIÓN ---------------------------------------------------------
+# Cada panel muestra el análisis de punto de estado de una fase.
+# Eje x: concentración de sólidos X (kg/m³). Eje y: flujo de sólidos (kg/m²·d).
+# La curva es el flujo gravitatorio Gs = v0 * X * exp(-k * X); la línea
+# punteada es el desbordamiento (pendiente OR = Q / A); la línea naranja es
+# el transporte hacia el fondo, de (0, Gt) a (Xu, 0); el punto rojo es el
+# punto de estado (X, Gi). El sistema falla cuando la línea de transporte
+# queda por encima de la curva gravitatoria.
+# Con los datos del script: Régimen Gt = 88.6 y Xu = 9.6 kg/m³ (opera bien);
+# Inhibición Gt = 88.6 y Xu = 9.6 kg/m³ (la curva baja por k = 0.26, pero la
+# línea de transporte sigue por debajo y el sistema aguanta); Colapso
+# Gt = 152.3 y Xu = 16.5 kg/m³ (la línea de transporte supera la curva: el
+# lodo no se evacua y se pierde biomasa); Rescate Gt = 152.3 y Xu = 7.1 kg/m³
+# (al bajar Q a 8,000 m³/d y subir Qr a 14,000 m³/d, la línea vuelve a quedar
+# por debajo de la curva y el sistema se recupera).
+
+# 8. QUÉ APRENDIMOS ---------------------------------------------------------
+# - El tóxico no cambia los caudales: cambia k (0.15 a 0.40), es decir, la
+#   capacidad del lodo para sedimentar. Por eso la curva gravitatoria se
+#   aplasta y el mismo flujo total de sólidos deja de ser transportable.
+# - El rescate no baja el flujo total de sólidos (Gt sigue en 152.3
+#   kg/m²·d): lo que hace es aumentar la velocidad de succión u, con lo que
+#   Xu baja de 16.5 a 7.1 kg/m³ y la línea de transporte se acorta hasta
+#   quedar por debajo de la curva.
+# - La fase de inhibición es la advertencia: el sistema aún opera, pero con
+#   menos margen, porque la curva ya bajó.
 

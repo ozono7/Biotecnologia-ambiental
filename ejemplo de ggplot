@@ -13,7 +13,7 @@
 
 
 # 1. Cargar la librería
-install.packages("ggplo2")
+# install.packages("ggplot2")
 
 library(ggplot2)
 
@@ -24,8 +24,8 @@ datos <- data.frame(
 )
 
 # 3. Construir el gráfico
-ggplot(data = datos, aes(x = dia, y = altura)) +
-  geom_line(color = "#DDA0DD", size = 1) +
+grafico <- ggplot(data = datos, aes(x = dia, y = altura)) +
+  geom_line(color = "#DDA0DD", linewidth = 1) +
   geom_point(color = "#6495ED", size = 3) +
   labs(
     title = "Curva de crecimiento",
@@ -34,3 +34,24 @@ ggplot(data = datos, aes(x = dia, y = altura)) +
     y = "Altura (cm)"
   ) +
   theme_minimal()
+
+print(grafico)
+
+# 4. EXPORTAR EL GRÁFICO ---------------------------------------------------
+ggsave("ejemplo_curva_crecimiento.png", plot = grafico, width = 8, height = 5, dpi = 300)
+
+# 5. INTERPRETACIÓN ---------------------------------------------------------
+# El gráfico muestra la altura de una planta durante 7 días de observación.
+# Eje x: día de observación (días). Eje y: altura (cm). Cada punto es una
+# medición y la línea une las mediciones en orden.
+# La altura pasa de 2 cm el día 1 a 15 cm el día 7. El crecimiento se acelera
+# con el tiempo: entre el día 1 y el 2 la planta crece 1.5 cm, y entre el día
+# 6 y el 7 crece 3.8 cm. La curva es creciente en todo el periodo, sin
+# mesetas ni caídas.
+
+# 6. QUÉ APRENDIMOS ---------------------------------------------------------
+# - Con ggplot2, un gráfico de líneas con puntos se construye con geom_line()
+#   y geom_point() sobre los mismos datos y la misma estética (x, y).
+# - labs() pone el título, el subtítulo y los nombres de los ejes, siempre
+#   con sus unidades (aquí, la altura en cm).
+# - theme_minimal() da un fondo limpio para leer la curva sin distracciones.

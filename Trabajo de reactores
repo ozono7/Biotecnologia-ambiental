@@ -12,39 +12,157 @@
 # ==========================================================================
 
 
-Comparación de reactores para el Tratamiento de Aguas Residuales
+# PLANTEAMIENTO DEL PROBLEMA
+# ------------------------------------------------------------------------------
+# Una industria alimentaria debe procesar un caudal de 1,000 metros cúbicos
+# por día de agua residual con una demanda bioquímica de oxígeno inicial de
+# 500 miligramos por litro. La normativa exige que el agua de salida tenga
+# una concentración máxima de 5 miligramos por litro. El sistema se inicia
+# con una inoculación constante de biomasa activa de 50 miligramos de
+# sólidos volátiles por litro.
+#
+# Parámetros cinéticos:
+# Tasa máxima de utilización específica (q): 10 por día
+# Constante de afinidad (K): 20 miligramos por litro
+# Rendimiento celular (Y): 0.5 miligramos de biomasa por miligramo de oxígeno
+# Decaimiento: Despreciable (0)
+#
+# Modelos matemáticos (balances de masa):
+# 1. Reactor de Flujo Tapón o Reactor por Lotes:
+# Tiempo = (1 / q) * [ ((K / (Biomasa inicial + Y * Sustrato inicial)) + (1 / Y)) * ln((Biomasa inicial + Y * (Sustrato inicial - Sustrato final)) / Biomasa inicial) - (K / (Biomasa inicial + Y * Sustrato inicial)) * ln(Sustrato final / Sustrato inicial) ]
+# 2. Reactor Continuo de Mezcla Completa:
+# Tiempo = [ (Sustrato inicial - Sustrato final) * (K + Sustrato final) ] / [ q * Sustrato final * (Biomasa inicial + Y * (Sustrato inicial - Sustrato final)) ]
 
-Planteamiento del Problema
-Una industria alimentaria debe procesar un caudal de 1,000 metros cúbicos por día de agua residual con una demanda bioquímica de oxígeno inicial de 500 miligramos por litro. La normativa exige que el agua de salida tenga una concentración máxima de 5 miligramos por litro. El sistema se inicia con una inoculación constante de biomasa activa de 50 miligramos de sólidos volátiles por litro.
+# 1. PREPARACIÓN DE ENTORNO
+# ------------------------------------------------------------------------------
+if (!require("pacman")) install.packages("pacman")
+pacman::p_load(ggplot2, dplyr, tidyr)
 
-Parámetros Cinéticos:
+# 2. PARÁMETROS DEL PROBLEMA
+# ------------------------------------------------------------------------------
+Q_caudal  <- 1000   # Caudal a tratar (m3/d)
+S0        <- 500    # DBO inicial (mg/L)
+Se_norma  <- 5      # DBO máxima de salida según la norma (mg/L)
+X0        <- 50     # Biomasa activa inicial (mg SV/L)
+q_max     <- 10     # Tasa máxima de utilización específica (1/d)
+K         <- 20     # Constante de afinidad (mg/L)
+Y         <- 0.5    # Rendimiento celular (mg biomasa / mg DBO)
 
-Tasa máxima de utilización específica (q): 10 por día
+# Eficiencia de remoción exigida por la norma
+eficiencia <- (S0 - Se_norma) / S0 * 100
 
-Constante de afinidad (K): 20 miligramos por litro
+# 3. CÁLCULO DE DISEÑO: TIEMPO DE RETENCIÓN Y VOLUMEN
+# ------------------------------------------------------------------------------
+# Biomasa al final del tratamiento (crece con el sustrato consumido)
+X_final <- function(Se) X0 + Y * (S0 - Se)
 
-Rendimiento celular (Y): 0.5 miligramos de biomasa por miligramo de oxígeno
+# 3.1 Reactor de Flujo Tapón (igual al reactor por lotes)
+tiempo_pfr <- function(Se) {
+  (1 / q_max) * (
+    ((K / (X0 + Y * S0)) + (1 / Y)) * log(X_final(Se) / X0)
+    - (K / (X0 + Y * S0)) * log(Se / S0)
+  )
+}
 
-Decaimiento: Despreciable (0)
+# 3.2 Reactor Continuo de Mezcla Completa
+tiempo_cstr <- function(Se) {
+  ((S0 - Se) * (K + Se)) / (q_max * Se * X_final(Se))
+}
 
-Modelos Matemáticos
+# Diseño con la norma (Se = 5 mg/L)
+t_pfr_norma  <- tiempo_pfr(Se_norma)
+t_cstr_norma <- tiempo_cstr(Se_norma)
+V_pfr_norma  <- Q_caudal * t_pfr_norma
+V_cstr_norma <- Q_caudal * t_cstr_norma
 
-Para los cálculos, utilice las siguientes ecuaciones basadas en balances de masa:
+cat("--- CÁLCULO DE DISEÑO (Se = 5 mg/L, eficiencia 99%) ---\n")
+cat(sprintf("Eficiencia de remoción exigida: %.1f %%\n", eficiencia))
+cat(sprintf("Biomasa final: %.1f mg SV/L\n", X_final(Se_norma)))
+cat(sprintf("Flujo tapón:      tiempo = %.4f d | volumen = %.1f m3\n", t_pfr_norma, V_pfr_norma))
+cat(sprintf("Mezcla completa:  tiempo = %.4f d | volumen = %.1f m3\n", t_cstr_norma, V_cstr_norma))
+cat(sprintf("El reactor de mezcla completa es %.2f veces mayor.\n\n", V_cstr_norma / V_pfr_norma))
 
-1. Reactor de Flujo Tapón o Reactor por Lotes:
-Tiempo = (1 / q) · [ ((K / (Biomasa inicial + Y · Sustrato inicial)) + (1 / Y)) · ln((Biomasa inicial + Y · (Sustrato inicial - Sustrato final)) / Biomasa inicial) - (K / (Biomasa inicial + Y · Sustrato inicial)) · ln(Sustrato final / Sustrato inicial) ]
+# 4. SENSIBILIDAD DEL DISEÑO: NORMA MENOS ESTRICTA (Se = 100 mg/L)
+# ------------------------------------------------------------------------------
+Se_relajada  <- 100     # DBO de salida con norma menos estricta (mg/L)
+t_pfr_relaj  <- tiempo_pfr(Se_relajada)
+t_cstr_relaj <- tiempo_cstr(Se_relajada)
+V_pfr_relaj  <- Q_caudal * t_pfr_relaj
+V_cstr_relaj <- Q_caudal * t_cstr_relaj
 
-2. Reactor Continuo de Mezcla Completa:
-Tiempo = [ (Sustrato inicial - Sustrato final) · (K + Sustrato final) ] / [ q · Sustrato final · (Biomasa inicial + Y · (Sustrato inicial - Sustrato final)) ]
+cat("--- SENSIBILIDAD (Se = 100 mg/L) ---\n")
+cat(sprintf("Flujo tapón:      tiempo = %.4f d | volumen = %.1f m3\n", t_pfr_relaj, V_pfr_relaj))
+cat(sprintf("Mezcla completa:  tiempo = %.4f d | volumen = %.1f m3\n", t_cstr_relaj, V_cstr_relaj))
+cat(sprintf("El reactor de mezcla completa es %.2f veces el de flujo tapón.\n", V_cstr_relaj / V_pfr_relaj))
 
-Instrucciones 
+# 5. VISUALIZACIÓN
+# ------------------------------------------------------------------------------
+df_volumen <- data.frame(
+  Reactor = c("Flujo tapón", "Mezcla completa", "Flujo tapón", "Mezcla completa"),
+  Norma = c("Se = 5 mg/L", "Se = 5 mg/L", "Se = 100 mg/L", "Se = 100 mg/L"),
+  Volumen_m3 = c(V_pfr_norma, V_cstr_norma, V_pfr_relaj, V_cstr_relaj)
+)
 
-Resolver en R usando ggplot. Discutir el comportamiento y:
+grafico <- ggplot(df_volumen, aes(x = Reactor, y = Volumen_m3, fill = Reactor)) +
+  geom_bar(stat = "identity", width = 0.6) +
+  geom_text(aes(label = sprintf("%.0f m³", Volumen_m3)), vjust = -0.5, size = 4) +
+  facet_wrap(~ Norma) +
+  scale_fill_manual(values = c("Flujo tapón" = "#0072B2", "Mezcla completa" = "#D55E00")) +
+  labs(
+    title = "Volumen requerido según el tipo de reactor",
+    subtitle = "Caudal de 1,000 m³/d; q = 10/d, K = 20 mg/L, Y = 0.5",
+    x = "Tipo de reactor",
+    y = "Volumen requerido (m³)"
+  ) +
+  theme_bw(base_size = 14) +
+  theme(
+    legend.position = "none",
+    strip.background = element_rect(fill = "gray90"),
+    strip.text = element_text(face = "bold", size = 12)
+  )
 
-Cálculo de Diseño: Determine el tiempo de retención (en días) y el volumen requerido (en metros cúbicos) para un Reactor de Flujo Tapón y para un Reactor de Mezcla Completa.
+print(grafico)
 
-Análisis de Eficiencia: Explique por qué el volumen del reactor de mezcla completa es drásticamente mayor al del flujo tapón cuando se busca una eficiencia de remoción del 99%.
+# 6. EXPORTAR EL GRÁFICO ---------------------------------------------------
+ggsave("reactores_volumenes.png", plot = grafico, width = 10, height = 6, dpi = 300)
 
-Teoría de Reactores: Justifique por qué un reactor que opera por lotes se comporta matemáticamente igual a un reactor de flujo tapón en estado estacionario.
+# 7. INTERPRETACIÓN ---------------------------------------------------------
+# El gráfico compara el volumen requerido por cada reactor para el mismo
+# caudal (1,000 m³/d) y la misma carga. Eje x: tipo de reactor. Eje y:
+# volumen requerido (m³). Cada panel es una norma de descarga distinta.
+# Con la norma estricta (Se = 5 mg/L, 99% de remoción), el flujo tapón
+# necesita 399.3 m³ (tiempo de retención 0.40 d) y la mezcla completa
+# 831.9 m³ (0.83 d): el de mezcla completa es 2.08 veces mayor.
+# Con la norma relajada (Se = 100 mg/L), el flujo tapón necesita 343.3 m³
+# (0.34 d) y la mezcla completa solo 192.0 m³ (0.19 d): ahora la mezcla
+# completa es más pequeña, 0.56 veces el flujo tapón. La diferencia de
+# tamaños no solo se achica, se invierte.
 
-Sensibilidad del Diseño: Si la norma de descarga fuera menos estricta (por ejemplo, 100 miligramos por litro), ¿qué sucedería con la diferencia de tamaños entre ambos reactores? Argumente su respuesta.
+# 8. DISCUSIÓN --------------------------------------------------------------
+# Análisis de eficiencia: con 99% de remoción, la mezcla completa es mucho
+# mayor porque todo su volumen trabaja a la concentración de salida
+# (Se = 5 mg/L), donde la velocidad de utilización q * Se / (K + Se) es muy
+# baja; en cambio, el flujo tapón aprovecha las concentraciones altas del
+# inicio, donde la velocidad es mayor. Por eso el volumen se dispara al
+# buscar una eficiencia tan alta.
+# Teoría de reactores: un reactor por lotes se comporta matemáticamente igual
+# que un flujo tapón porque en ambos cada elemento de fluido tiene el mismo
+# tiempo de residencia y la misma historia de concentraciones: en el lote el
+# tiempo avanza, en el tapón avanza la posición, pero la ecuación de balance
+# es la misma.
+# Sensibilidad del diseño: con Se = 100 mg/L la mezcla completa pasa a ser
+# más pequeña que el flujo tapón, porque a concentraciones altas la biomasa
+# ya creció (X final = 250 mg/L) y la mezcla completa trabaja todo el tiempo
+# con esa biomasa alta, mientras en el flujo tapón la biomasa va creciendo
+# de 50 a 250 mg/L a lo largo del reactor y su promedio es menor.
+
+# 9. QUÉ APRENDIMOS ---------------------------------------------------------
+# - El volumen no depende solo del caudal: depende de la concentración a la
+#   que trabaja cada punto del reactor.
+# - Pedir 99% de remoción castiga mucho más a la mezcla completa que al
+#   flujo tapón, porque la mezcla completa trabaja entera a 5 mg/L.
+# - La comparación entre reactores cambia con la norma: con una descarga
+#   menos estricta, la mezcla completa puede ser la opción más compacta.
+# - La biomasa final (297.5 mg/L con Se = 5 mg/L) sale de los datos
+#   (X0 + Y * (S0 - Se)): no es un valor supuesto, es el crecimiento
+#   calculado a partir del sustrato consumido.

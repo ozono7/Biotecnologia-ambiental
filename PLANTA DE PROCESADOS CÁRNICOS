@@ -30,17 +30,15 @@ showtext_auto()
 #limpieza de planta, manteniendo la recirculación baja, lo que dispara la 
 #velocidad de desbordamiento.
 #3) Choque Químico y Bulking: El ingreso de desinfectantes reduce la velocidad 
-#de caída (v0 cae a 100 m/d) y aumenta k a 0.38, mientras la biomasa sube a 5.0 kg/m³.
+#de caída (v0 cae a 90 m/d) y aumenta k a 0.38, mientras la biomasa sube a 5.0 kg/m³.
 #4) Estrategia de Purga Extrema: Para evitar el colapso, se detiene parte de la 
 #producción (Q=5,000 m³/d) y se maximiza la recirculación a 15,000 m³/d para 
 #compactar el lodo residual.
 #Explique cómo varían los límites de transporte en estas 4 condiciones extremas.
 
-# 2. ESCENARIOS OPERATIVOS 
+# 2. ESCENARIOS OPERATIVOS
 # ------------------------------------------------------------------------------
-A  <- 500         # Área  pequeña 
-v0_base <- 160    # Lodo muy rápido en estado inicial
-v0_fall <- 90     # Lodo muy lento en estado de choque
+A  <- 500         # Área  pequeña
 
 escenarios_carnicos <- data.frame(
   ID = 1:4,
@@ -62,7 +60,9 @@ crear_grafico_spa <- function(datos) {
   Gt  <- (datos$Q + datos$Qr) * datos$X / A 
   Xu  <- Gt / u                           
   
-  df_curva <- data.frame(Xb = seq(0, 25, length.out = 400)) %>%
+  # El rango llega a 30 kg/m³ para que se vea completo el extremo de la línea
+  # de transporte (Xu = 27.5 kg/m³ en el escenario de lavado).
+  df_curva <- data.frame(Xb = seq(0, 30, length.out = 400)) %>%
     mutate(Gs = datos$v0 * exp(-datos$k * Xb) * Xb)
   
   # Asignación de colores por estado para facilitar interpretación
@@ -80,7 +80,7 @@ crear_grafico_spa <- function(datos) {
     annotate("point", x = datos$X, y = Gi, size = 3.5, shape = 21, fill = color_line, color = "white") +
     labs(
       title = paste(datos$ID, "-", datos$Estado),
-      subtitle = sprintf("u: %.1f | OR: %.1f | Gt: %.1f", u, OR, Gt),
+      subtitle = sprintf("OR: %.1f | u: %.1f | Gt: %.1f | Xu: %.1f", OR, u, Gt, Xu),
       x = "X (kg/m³)", y = "G (kg/m²·d)"
     ) +
     theme_minimal(base_family = "modern_sans") +
@@ -101,9 +101,40 @@ g4 <- crear_grafico_spa(escenarios_carnicos[4,])
 
 # 5. RENDERIZADO FINAL
 # ------------------------------------------------------------------------------
-(g1 | g2) / (g3 | g4) + 
+grafico_final <- (g1 | g2) / (g3 | g4) +
   plot_annotation(
     title = 'VARIABILIDAD OPERATIVA EN SEDIMENTACIÓN INDUSTRIAL',
     subtitle = 'Comparativa de estados críticos: Hidráulicos vs. Cinéticos',
     theme = theme(plot.title = element_text(size = 16, face = "bold", hjust = 0.5))
   )
+
+print(grafico_final)
+
+# 6. EXPORTAR EL GRÁFICO ---------------------------------------------------
+ggsave("carnicos_4_estados.png", plot = grafico_final, width = 12, height = 8, dpi = 300)
+
+# 7. INTERPRETACIÓN ---------------------------------------------------------
+# Cada panel muestra el análisis de punto de estado de un escenario.
+# Eje x: concentración de sólidos X (kg/m³). Eje y: flujo de sólidos G (kg/m²·d).
+# La curva es el flujo gravitatorio Gs = v0 * X * exp(-k * X); la línea
+# punteada es el desbordamiento (pendiente OR = Q / A); la línea oscura es
+# el transporte hacia el fondo, de (0, Gt) a (Xu, 0); el punto es el punto
+# de estado (X, Gi). El sistema falla cuando la línea de transporte queda
+# por encima de la curva gravitatoria.
+# Con los datos del script: Basal Gt = 72.0 y Xu = 18.0 kg/m³ (opera bien,
+# con el lodo rápido v0 = 160 m/d); Lavado Gt = 110.0 y Xu = 27.5 kg/m³
+# (opera bien, pero Xu es muy alto: el lodo espesado queda diluido porque la
+# succión u es solo 4.0 m/d); Choque Gt = 200.0 y Xu = 20.0 kg/m³ (la línea
+# de transporte supera la curva: falla por bulking químico); Purga
+# Gt = 160.0 y Xu = 5.3 kg/m³ (al bajar Q a 5,000 m³/d y subir Qr a
+# 15,000 m³/d, la línea vuelve a quedar por debajo de la curva).
+
+# 8. QUÉ APRENDIMOS ---------------------------------------------------------
+# - El lavado hidráulico y el choque químico fallan por motivos distintos:
+#   el lavado sube OR a 40.0 m/d sin tocar la cinética del lodo, mientras el
+#   choque aplasta la curva gravitatoria (v0 cae a 90 m/d y k sube a 0.38).
+# - La purga extrema no baja el flujo total de sólidos (Gt sigue en 160.0
+#   kg/m²·d): lo que hace es subir la velocidad de succión u a 30.0 m/d, con
+#   lo que Xu baja de 20.0 a 5.3 kg/m³ y el transporte vuelve a ser posible.
+# - Cada escenario tiene su propia v0 en la tabla de datos: el lodo no
+#   sedimenta igual en los cuatro estados, y eso es lo que cambia la curva.
