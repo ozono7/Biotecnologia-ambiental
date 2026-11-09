@@ -1,11 +1,14 @@
-# Una industria debe tratar un caudal de aguas residuales de Q = 5,000 m³/d 
-# con una concentración de materia orgánica de S0 = 250 mg DBO_L / L. 
-# La mitad de esta carga orgánica se encuentra en forma soluble. 
-# El objetivo de la planta es producir un efluente de alta calidad (menor a 5 mg DBO_L / L).
-
-# La gerencia te ha pedido evaluar geométricamente dos alternativas de biopelícula 
-# aerobia para determinar cuál requiere más área superficial total de soporte y 
-# cuál ocupa más espacio físico (huella en planta):
+# ==========================================================================
+# Torre biológica vs. RBC
+# ==========================================================================
+# Autor: José Juan Torres Martínez
+# Institución: Universidad Autónoma de San Luis Potosí (UASLP)
+# Doctorado en Ciencias en Bioprocesos
+# Laboratorio de Biotecnología Molecular de Células Vegetales y Bioinformática
+# Material académico para estudiantes
+#
+# Descripción: Comparación geométrica de dos alternativas de biopelícula aerobia (torre biológica y contactor biológico rotativo) para el tratamiento de aguas residuales.
+# ==========================================================================
 
 # 1. Torre Biológica (Filtro de percolación de alta tasa): Utilizando módulos 
 # de plástico corrugado con un área superficial específica (a) de 200 m²/m³ 

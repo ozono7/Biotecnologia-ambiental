@@ -1,29 +1,14 @@
-# ==============================================================================
-# SEDIMENTACIÓN SECUNDARIA: ANÁLISIS DE IMPACTO POR TORMENTA
-# ==============================================================================
-#La integridad de una cuenca fluvial se encuentra en riesgo 
-#inminente debido a la posible saturación de un sedimentador
-#secundario de 800 m² que debe gestionar un flujo crítico de
-#15,000 m³/d más una recirculación de 7,500 m³/d. Con una
-#carga de sólidos suspendidos de 3.5 kg/m³ y una cinética de
-#lodos caracterizada por una velocidad máxima de 140 m/d y un
-#coeficiente de compactación de 0.18 m³/kg, el sistema opera 
-#en el límite de su estabilidad. Si el flujo total de sólidos
-#excede la capacidad de transporte, se producirá un vertido
-#masivo de biomasa hacia el cuerpo receptor, provocando una
-#eutrofización acelerada y un agotamiento severo del oxígeno
-#disuelto que amenaza directamente la biodiversidad acuática
-#y el cumplimiento de las normativas ambientales vigentes.
-#Debido a un evento de tormenta extraordinaria que ha elevado 
-#el caudal de entrada a 66.67 % m³/d, el sedimentador de 800 m²
-#enfrenta una situación inminente al reducirse la capacidad de
-#succión a 4,000 m³/d frente a un exceso de biomasa de 5.5 kg/m³. 
-#Esta saturación hidráulica, combinada con una degradación crítica
-#en la sedimentabilidad del lodo (k = 0.25 m³/kg), ha superado 
-#los límites físicos de transporte del sistema, comprometiendo 
-#la integridad de la cuenca receptora debido al vertido incontrolado
-#de sólidos y al riesgo de eutrofización acelerada.
-#Explique el comportamiento operativo actual y despúes de una tormneta
+# ==========================================================================
+# Sedimentación secundaria: análisis de impacto por tormenta
+# ==========================================================================
+# Autor: José Juan Torres Martínez
+# Institución: Universidad Autónoma de San Luis Potosí (UASLP)
+# Doctorado en Ciencias en Bioprocesos
+# Laboratorio de Biotecnología Molecular de Células Vegetales y Bioinformática
+# Material académico para estudiantes
+#
+# Descripción: Análisis del impacto de una tormenta sobre un sedimentador secundario de 800 m².
+# ==========================================================================
 
 # 1. PREPARACIÓN DE ENTORNO
 # ------------------------------------------------------------------------------

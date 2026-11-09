@@ -1,6 +1,14 @@
-# ==============================================================================
-# DINÁMICA DE ESTABILIDAD EN 4 ESTADOS CRÍTICOS
-# ==============================================================================
+# ==========================================================================
+# Dinámica de estabilidad en 4 estados críticos
+# ==========================================================================
+# Autor: José Juan Torres Martínez
+# Institución: Universidad Autónoma de San Luis Potosí (UASLP)
+# Doctorado en Ciencias en Bioprocesos
+# Laboratorio de Biotecnología Molecular de Células Vegetales y Bioinformática
+# Material académico para estudiantes
+#
+# Descripción: Simulación de la dinámica de estabilidad de un sistema de lodos activados en cuatro estados críticos.
+# ==========================================================================
 
 # 1. PREPARACIÓN DE ENTORNO
 # ------------------------------------------------------------------------------

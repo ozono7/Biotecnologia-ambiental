@@ -1,6 +1,14 @@
-# ==============================================================================
-# DISEÑO Y ANÁLISIS DE SEDIMENTADOR SECUNDARIO 
-# ==============================================================================
+# ==========================================================================
+# Diseño y análisis de sedimentador secundario
+# ==========================================================================
+# Autor: José Juan Torres Martínez
+# Institución: Universidad Autónoma de San Luis Potosí (UASLP)
+# Doctorado en Ciencias en Bioprocesos
+# Laboratorio de Biotecnología Molecular de Células Vegetales y Bioinformática
+# Material académico para estudiantes
+#
+# Descripción: Diseño y análisis hidráulico de un sedimentador secundario para tratamiento de aguas residuales.
+# ==========================================================================
 
 # 1. PARÁMETROS OPERATIVOS Y DE DISEÑO
 Q  <- 10000      # Caudal de entrada de agua residual (m3/d)
