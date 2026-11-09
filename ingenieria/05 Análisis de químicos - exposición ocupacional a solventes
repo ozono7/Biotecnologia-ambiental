@@ -9,13 +9,15 @@
 # Material académico para estudiantes
 # Serie: Biotecnología ambiental / Ingeniería - Análisis de químicos
 #
-# Descripción: Monitoreo de la exposición ocupacional a 4 solventes en
-# un laboratorio de extracciones. Se midió la concentración de cada
-# solvente en 4 periodos de 2 horas durante la jornada de 8 horas y se
-# calculó el promedio ponderado en el tiempo (TWA) de cada uno:
-# TWA = suma(concentración x tiempo) / 8 horas. El TWA se compara con
-# el valor límite de exposición promedio ponderado en tiempo (VLE-PPT)
-# de la NOM-010-STPS-2014.
+# Descripción: Recorrido de monitoreo por un laboratorio de
+# extracciones durante la jornada completa de 8 horas. Entramos al
+# inicio del turno y seguimos el trabajo en 4 periodos de 2 horas:
+# en cada periodo medimos la concentración de 4 solventes (tolueno,
+# xileno, acetona y metanol) en el aire del laboratorio. Con las 4
+# mediciones de cada solvente calculamos su promedio ponderado en el
+# tiempo (TWA): TWA = suma(concentración x tiempo) / 8 horas. El TWA
+# se compara con el valor límite de exposición promedio ponderado en
+# tiempo (VLE-PPT) de la NOM-010-STPS-2014.
 #
 # Referencia normativa: NOM-010-STPS-2014, "Agentes químicos
 # contaminantes del ambiente laboral - Reconocimiento, evaluación y
@@ -32,11 +34,13 @@
 if (!require("pacman")) install.packages("pacman")
 pacman::p_load(ggplot2, dplyr)
 
-# 2. TABLA DE MEDICIONES
+# 2. LO QUE MEDIMOS EN CADA PERIODO DEL RECORRIDO
 # ------------------------------------------------------------------------------
 # Concentraciones medidas en el aire del laboratorio de extracciones, en
 # partes por millón (ppm), en 4 periodos de 2 horas que cubren la
-# jornada completa de 8 horas.
+# jornada completa de 8 horas. Caminamos el laboratorio periodo a
+# periodo: en el periodo 3, a la mitad de la jornada, es cuando se
+# hacen más extracciones y los solventes suben.
 mediciones <- data.frame(
   solvente = rep(c("Tolueno", "Xileno", "Acetona", "Metanol"), each = 4),
   periodo = rep(1:4, times = 4),
@@ -57,8 +61,11 @@ limites <- data.frame(
   stringsAsFactors = FALSE
 )
 
-# 3. CÁLCULO DEL TWA DE 8 HORAS Y DEL PORCENTAJE DEL LÍMITE
+# 3. AL TERMINAR LA JORNADA: TWA DE 8 HORAS Y PORCENTAJE DEL LÍMITE
 # ------------------------------------------------------------------------------
+# Con los 4 periodos del recorrido completos, calculamos el TWA de cada
+# solvente y lo comparamos con su límite: así vemos qué tan cerca quedó
+# cada uno del VLE-PPT.
 # TWA = suma(Ci x ti) / 8 h. Cada periodo dura 2 h, así que
 # TWA = 2 x suma(Ci) / 8.
 resumen <- mediciones %>%
@@ -80,8 +87,10 @@ cat(sprintf("\nSolvente más cercano al límite (TWA): %s, %.1f%% del VLE-PPT\n"
             resumen$solvente[which.max(resumen$porcentaje_limite)],
             max(resumen$porcentaje_limite)))
 
-# 4. GRÁFICA 1: TWA COMO PORCENTAJE DEL LÍMITE
+# 4. PRIMERA PARADA DE LOS RESULTADOS: TWA COMO PORCENTAJE DEL LÍMITE
 # ------------------------------------------------------------------------------
+# El primer gráfico ordena lo que encontramos en el recorrido: qué
+# solvente quedó más cerca de su límite al final de la jornada.
 resumen_ord <- resumen %>% arrange(desc(porcentaje_limite))
 resumen_ord$solvente <- factor(resumen_ord$solvente, levels = rev(resumen_ord$solvente))
 
@@ -107,8 +116,10 @@ p1 <- ggplot(resumen_ord, aes(x = solvente, y = porcentaje_limite, fill = porcen
     axis.title = element_text(face = "bold", size = 10)
   )
 
-# 5. GRÁFICA 2: CONCENTRACIÓN POR PERIODO FRENTE AL LÍMITE
+# 5. SEGUIMOS LA JORNADA PERIODO A PERIODO: CONCENTRACIÓN FRENTE AL LÍMITE
 # ------------------------------------------------------------------------------
+# El segundo gráfico vuelve a caminar la jornada en sus 4 periodos,
+# solvente por solvente, frente a su valor límite.
 p2 <- ggplot(mediciones, aes(x = periodo, y = concentracion_ppm, group = solvente)) +
   geom_line(color = "#2980b9", linewidth = 1.1) +
   geom_point(color = "#2980b9", size = 3) +
@@ -128,7 +139,7 @@ p2 <- ggplot(mediciones, aes(x = periodo, y = concentracion_ppm, group = solvent
     axis.title = element_text(face = "bold", size = 10)
   )
 
-# 6. RENDERIZADO
+# 6. MIRAMOS LOS DOS RESÚMENES DEL RECORRIDO
 # ------------------------------------------------------------------------------
 print(p1)
 print(p2)
@@ -138,7 +149,8 @@ ggsave("quimicos_porcentaje_limite.png", plot = p1, width = 10, height = 6, dpi 
 ggsave("quimicos_mediciones.png", plot = p2, width = 10, height = 6, dpi = 300)
 
 # 8. INTERPRETACIÓN ---------------------------------------------------------
-# Gráfica 1 (TWA como porcentaje del límite): eje x, solvente; eje y,
+# Al terminar la jornada, los dos gráficos cuentan lo que respiramos en
+# el laboratorio de extracciones. Gráfica 1 (TWA como porcentaje del límite): eje x, solvente; eje y,
 # porcentaje del valor límite (%, adimensional: cociente entre el TWA
 # y el límite, por 100). La línea punteada en 100% es el límite de la
 # norma. Ningún solvente rebasa su VLE-PPT, pero todos están entre 68%
@@ -172,3 +184,6 @@ ggsave("quimicos_mediciones.png", plot = p2, width = 10, height = 6, dpi = 300)
 #   actuar.
 # - Cuando los 4 solventes están en el mismo porcentaje del límite, el
 #   problema es del área (ventilación general) y no de un solo producto.
+# Terminamos el recorrido a la salida del laboratorio: ningún solvente
+# rebasó su VLE-PPT en el TWA, pero el pico del periodo 3 marca que la
+# ventilación debe reforzarse justo cuando se hacen más extracciones.

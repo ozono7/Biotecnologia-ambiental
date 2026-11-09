@@ -9,12 +9,17 @@
 # Material académico para estudiantes
 # Serie: Biotecnología ambiental / Ingeniería - Respuesta a emergencias
 #
-# Descripción: Respuesta a un derrame de 25 L de ácido sulfúrico
-# concentrado en el almacén de reactivos. Se calcula la masa
+# Descripción: Recorrido de respuesta a un derrame de 25 L de ácido
+# sulfúrico concentrado en el almacén de reactivos. Entramos por el
+# almacén, donde está el contenedor roto, y caminamos la respuesta
+# paso a paso: detección y alarma, evacuación del área, llegada de la
+# brigada, contención con absorbente, neutralización, y limpieza con
+# verificación. En cada parada calculamos lo que toca: la masa
 # derramada, la cantidad de bicarbonato de sodio necesaria para
-# neutralizarlo, la cronología de la respuesta y las zonas de
-# afectación (caliente, tibia y fría). La neutralización sigue la
-# reacción: H2SO4 + 2 NaHCO3 -> Na2SO4 + 2 CO2 + 2 H2O.
+# neutralizarlo, cuánto duró cada fase y qué tan grandes son las
+# zonas de afectación (caliente, tibia y fría) al alejarnos del
+# derrame. La neutralización sigue la reacción:
+# H2SO4 + 2 NaHCO3 -> Na2SO4 + 2 CO2 + 2 H2O.
 #
 # Referencia: plan de respuesta a emergencias químicas del centro de
 # trabajo y hojas de datos de seguridad (NOM-018-STPS-2015). Los
@@ -29,10 +34,11 @@
 if (!require("pacman")) install.packages("pacman")
 pacman::p_load(ggplot2, dplyr)
 
-# 2. DATOS DEL ESCENARIO
+# 2. PRIMERA PARADA: EL ALMACÉN Y EL DERRAME
 # ------------------------------------------------------------------------------
-# Derrame de ácido sulfúrico concentrado (98% p/p) en el almacén de
-# reactivos. Volumen derramado medido en el contenedor roto.
+# Llegamos al almacén de reactivos y vemos el contenedor roto: el
+# derrame es de ácido sulfúrico concentrado (98% p/p). El volumen
+# derramado se midió en el contenedor roto.
 volumen_derramado_l <- 25
 densidad_h2so4_kg_l <- 1.84
 masa_molar_h2so4_g_mol <- 98.079
@@ -62,8 +68,13 @@ fases <- data.frame(
   stringsAsFactors = FALSE
 )
 
-# 3. CÁLCULOS DE LA RESPUESTA
+# 3. EN CADA PARADA DE LA RESPUESTA HACEMOS LOS CÁLCULOS
 # ------------------------------------------------------------------------------
+# Con el derrame a la vista calculamos la masa derramada y el
+# neutralizante necesario (estequiometría 1:2): cuánto bicarbonato
+# pide el ácido y cuánto absorbente marca el plan. También medimos
+# cuánto duró cada fase de la respuesta y qué tan grandes son las
+# zonas caliente, tibia y fría al alejarnos del derrame.
 # Masa derramada y neutralizante necesario (estequiometría 1:2).
 masa_derramada_kg <- volumen_derramado_l * densidad_h2so4_kg_l
 moles_h2so4 <- masa_derramada_kg * 1000 / masa_molar_h2so4_g_mol
@@ -100,8 +111,10 @@ print(fases[, c("fase", "inicio_min", "fin_min", "duracion_min")])
 cat("\n")
 print(zonas)
 
-# 4. GRÁFICA 1: CRONOLOGÍA DE LA RESPUESTA
+# 4. PRIMERA PARADA DE LOS RESULTADOS: LA CRONOLOGÍA DE LA RESPUESTA
 # ------------------------------------------------------------------------------
+# El primer gráfico vuelve a caminar la respuesta minuto a minuto,
+# desde la detección hasta la limpieza con verificación.
 fases_ord <- fases %>%
   mutate(fase = factor(fase, levels = rev(fase)))
 
@@ -125,8 +138,10 @@ p1 <- ggplot(fases_ord, aes(y = fase)) +
     axis.title = element_text(face = "bold", size = 10)
   )
 
-# 5. GRÁFICA 2: ÁREAS DE LAS ZONAS DE AFECTACIÓN
+# 5. SEGUIMOS ALEJÁNDONOS DEL DERRAME: LAS ZONAS DE AFECTACIÓN
 # ------------------------------------------------------------------------------
+# El segundo gráfico sale del derrame hacia afuera: la zona caliente
+# junto al derrame, la tibia de control y la fría de apoyo.
 zonas_ord <- zonas %>%
   mutate(zona = factor(zona, levels = c("Caliente (derrame)", "Tibia (control)", "Fría (apoyo)")))
 
@@ -149,7 +164,7 @@ p2 <- ggplot(zonas_ord, aes(x = zona, y = area_m2, fill = zona)) +
     axis.title = element_text(face = "bold", size = 10)
   )
 
-# 6. RENDERIZADO
+# 6. MIRAMOS LOS DOS RESÚMENES DEL RECORRIDO
 # ------------------------------------------------------------------------------
 print(p1)
 print(p2)
@@ -159,7 +174,8 @@ ggsave("derrames_cronologia.png", plot = p1, width = 10, height = 6, dpi = 300)
 ggsave("derrames_zonas.png", plot = p2, width = 10, height = 6, dpi = 300)
 
 # 8. INTERPRETACIÓN ---------------------------------------------------------
-# Gráfica 1 (cronología): eje x, tiempo en minutos desde la detección;
+# Al terminar el recorrido de la respuesta, los dos gráficos cuentan
+# cómo se atendió el derrame. Gráfica 1 (cronología): eje x, tiempo en minutos desde la detección;
 # eje y, fase de la respuesta. La respuesta completa tomó 60 minutos.
 # Las dos primeras fases son rápidas: detección y alarma 2 minutos
 # (3.3% del tiempo total) y evacuación del área 3 minutos (5.0%).
@@ -194,3 +210,6 @@ ggsave("derrames_zonas.png", plot = p2, width = 10, height = 6, dpi = 300)
 # - Zona caliente, tibia y fría tienen funciones distintas: solo la
 #   brigada con equipo entra a la caliente, la tibia es de control y
 #   descontaminación, y la fría es de apoyo y mando.
+# Terminamos el recorrido en la zona fría, en el puesto de mando: el
+# área quedó limpia y verificada a los 60 minutos, con 86.7 kg de
+# bicarbonato usados y el almacén listo para reabrirse.

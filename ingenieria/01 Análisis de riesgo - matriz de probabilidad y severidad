@@ -9,12 +9,15 @@
 # Material académico para estudiantes
 # Serie: Biotecnología ambiental / Ingeniería - Análisis de riesgo
 #
-# Descripción: Evaluación de riesgos en un laboratorio de biotecnología
-# ambiental y planta piloto con una matriz de riesgo 5 x 5. Cada peligro
-# se califica con una probabilidad (1 a 5) y una severidad (1 a 5)
+# Descripción: Recorrido por un laboratorio de biotecnología ambiental
+# y su planta piloto. Entramos por el laboratorio de análisis, seguimos
+# por la planta de tratamiento y la planta piloto, pasamos por el
+# laboratorio de extracciones y terminamos en el almacén de reactivos.
+# En cada parada del recorrido anotamos el peligro que vemos y lo
+# calificamos con una probabilidad (1 a 5) y una severidad (1 a 5)
 # asignadas por el equipo de trabajo; el nivel de riesgo es el producto
-# probabilidad x severidad. La matriz ordena los peligros para decidir
-# cuáles se atienden primero.
+# probabilidad x severidad. Al terminar el recorrido, la matriz ordena
+# los peligros para decidir cuáles se atienden primero.
 #
 # Referencia: matriz de riesgo 5 x 5 de uso estándar en gestión de
 # seguridad (por ejemplo, ISO 31000 para gestión del riesgo y la guía
@@ -30,8 +33,14 @@
 if (!require("pacman")) install.packages("pacman")
 pacman::p_load(ggplot2, dplyr)
 
-# 2. TABLA DE PELIGROS IDENTIFICADOS
+# 2. PRIMERA PARADA: LOS PELIGROS QUE VAMOS ENCONTRANDO EN EL RECORRIDO
 # ------------------------------------------------------------------------------
+# Empezamos en el laboratorio de análisis, donde vemos el derrame de
+# ácido sulfúrico; seguimos a la planta de tratamiento, con la fuga de
+# cloro y los lodos con patógenos; en la planta piloto encontramos el
+# contacto eléctrico en el bombeo, el piso mojado y el agitador sin
+# guarda; en el laboratorio de extracciones, los vapores de solvente,
+# y cerramos en el almacén de reactivos, con los solventes inflamables.
 # Probabilidad (P): 1 rara vez, 2 poco probable, 3 posible, 4 probable,
 # 5 casi seguro. Severidad (S): 1 leve, 2 menor, 3 moderada, 4 grave,
 # 5 catastrófica. P y S son calificaciones del equipo de trabajo, en
@@ -62,8 +71,10 @@ peligros <- data.frame(
   stringsAsFactors = FALSE
 )
 
-# 3. CÁLCULO DEL NIVEL DE RIESGO
+# 3. EN CADA PARADA CALCULAMOS EL NIVEL DE RIESGO
 # ------------------------------------------------------------------------------
+# En cada parada del recorrido multiplicamos probabilidad por severidad:
+# el número que sale dice qué tan urgente es atender ese peligro.
 # Riesgo = probabilidad x severidad. Niveles: 1-4 Bajo, 5-9 Medio,
 # 10-16 Alto, 17-25 Muy alto.
 peligros <- peligros %>%
@@ -84,8 +95,11 @@ cat(sprintf("\nRiesgo máximo: %d | Riesgo promedio: %.2f\n",
             max(peligros$riesgo), mean(peligros$riesgo)))
 print(table(peligros$nivel))
 
-# 4. GRÁFICA 1: MATRIZ DE RIESGO 5 x 5 CON LOS PELIGROS UBICADOS
+# 4. PARADA EN LA SALA DE CONTROL: LA MATRIZ DE RIESGO 5 x 5
 # ------------------------------------------------------------------------------
+# Terminamos el recorrido en la sala de control y ponemos los 8
+# peligros sobre la matriz: cada uno cae en su celda según su
+# probabilidad y su severidad, y el color dice su nivel.
 matriz <- expand.grid(probabilidad = 1:5, severidad = 1:5) %>%
   mutate(
     riesgo = probabilidad * severidad,
@@ -126,8 +140,10 @@ p1 <- ggplot(matriz, aes(x = probabilidad, y = severidad, fill = nivel)) +
     axis.title = element_text(face = "bold", size = 10)
   )
 
-# 5. GRÁFICA 2: NIVEL DE RIESGO DE CADA PELIGRO, ORDENADO
+# 5. LA LISTA DE PRIORIDADES AL TERMINAR EL RECORRIDO
 # ------------------------------------------------------------------------------
+# Con la matriz a la vista, ordenamos los peligros del más al menos
+# riesgoso: esta es la lista con la que salimos de la sala de control.
 peligros_ord <- peligros %>% arrange(desc(riesgo))
 peligros_ord$peligro <- factor(peligros_ord$peligro, levels = rev(peligros_ord$peligro))
 
@@ -152,8 +168,10 @@ p2 <- ggplot(peligros_ord, aes(x = peligro, y = riesgo, fill = nivel)) +
     axis.title = element_text(face = "bold", size = 10)
   )
 
-# 6. RENDERIZADO
+# 6. MIRAMOS LOS DOS MAPAS DEL RECORRIDO
 # ------------------------------------------------------------------------------
+# Mostramos la matriz con los peligros ubicados y la lista ordenada:
+# son los dos mapas con los que se decide qué se atiende primero.
 print(p1)
 print(p2)
 
@@ -162,7 +180,8 @@ ggsave("riesgo_matriz.png", plot = p1, width = 10, height = 6, dpi = 300)
 ggsave("riesgo_puntajes.png", plot = p2, width = 10, height = 6, dpi = 300)
 
 # 8. INTERPRETACIÓN ---------------------------------------------------------
-# Gráfica 1 (matriz 5 x 5): eje x, probabilidad (escala adimensional de
+# Al terminar el recorrido, los dos gráficos cuentan lo que vimos en
+# la planta. Gráfica 1 (matriz 5 x 5): eje x, probabilidad (escala adimensional de
 # 1 a 5); eje y, severidad (escala adimensional de 1 a 5). Cada celda
 # muestra el riesgo, que es el producto de ambas. Los 8 peligros caen
 # así: 1 en Bajo (atrapamiento en agitador, 1 x 4 = 4), 4 en Medio
@@ -191,3 +210,6 @@ ggsave("riesgo_puntajes.png", plot = p2, width = 10, height = 6, dpi = 300)
 #   queden escritos antes de evaluar.
 # - La matriz es una fotografía: hay que repetirla cuando cambie el
 #   proceso, el equipo o después de un incidente.
+# Terminamos el recorrido en la sala de control con la lista de
+# prioridades en la mano: primero los 3 peligros en Alto, y después
+# los 4 en Medio.

@@ -9,12 +9,16 @@
 # Material académico para estudiantes
 # Serie: Biotecnología ambiental / Ingeniería - Análisis de gases
 #
-# Descripción: Monitoreo de gases en el aire de una planta de tratamiento
-# de aguas residuales con detector multigás. Se midió la concentración
-# de 5 gases en 3 momentos de la jornada y se comparó el promedio con
-# el valor límite de exposición (VLE) de la NOM-010-STPS-2014. El
-# porcentaje del límite se calcula a partir de las mediciones: si llega
-# a 100%, la exposición está en el límite y hay que actuar.
+# Descripción: Recorrido de monitoreo por una planta de tratamiento
+# de aguas residuales, con detector multigás en mano. Entramos por el
+# área de cloración, seguimos a la zona de lodos, pasamos por la sala
+# de máquinas y cerramos en las áreas de trabajo. En cada parada
+# medimos la concentración de 5 gases, y repetimos el recorrido en 3
+# momentos de la jornada: mañana (inicio del turno), mediodía y tarde
+# (fin del turno). El promedio de cada gas se compara con el valor
+# límite de exposición (VLE) de la NOM-010-STPS-2014. El porcentaje
+# del límite se calcula a partir de las mediciones: si llega a 100%,
+# la exposición está en el límite y hay que actuar.
 #
 # Referencia normativa: NOM-010-STPS-2014, "Agentes químicos
 # contaminantes del ambiente laboral - Reconocimiento, evaluación y
@@ -32,10 +36,13 @@
 if (!require("pacman")) install.packages("pacman")
 pacman::p_load(ggplot2, dplyr)
 
-# 2. TABLA DE MEDICIONES
+# 2. LO QUE MEDIMOS EN CADA PARADA DEL RECORRIDO
 # ------------------------------------------------------------------------------
 # Concentraciones medidas con detector multigás en la planta de
-# tratamiento, en partes por millón (ppm). Tres momentos de la jornada:
+# tratamiento, en partes por millón (ppm). En el área de cloración
+# medimos el cloro; en la zona de lodos, el amoniaco y el sulfuro de
+# hidrógeno; en la sala de máquinas, el monóxido de carbono; y en las
+# áreas de trabajo, el dióxido de carbono. Tres momentos de la jornada:
 # mañana (inicio del turno), mediodía y tarde (fin del turno).
 mediciones <- data.frame(
   gas = rep(c("Amoniaco (NH3)", "Cloro (Cl2)", "Sulfuro de hidrógeno (H2S)",
@@ -61,8 +68,11 @@ limites <- data.frame(
   stringsAsFactors = FALSE
 )
 
-# 3. PROMEDIO DE LA JORNADA Y PORCENTAJE DEL LÍMITE
+# 3. AL TERMINAR EL RECORRIDO: PROMEDIO DE LA JORNADA Y PORCENTAJE DEL LÍMITE
 # ------------------------------------------------------------------------------
+# Con las tres pasadas del recorrido completas, promediamos lo medido
+# en cada parada y lo comparamos con su límite: así vemos qué tan cerca
+# quedó cada gas del VLE.
 resumen <- mediciones %>%
   group_by(gas) %>%
   summarise(
@@ -83,8 +93,10 @@ cat(sprintf("\nGas más cercano al límite (promedio): %s, %.0f%% del VLE\n",
             resumen$gas[which.max(resumen$porcentaje_limite)],
             max(resumen$porcentaje_limite)))
 
-# 4. GRÁFICA 1: PORCENTAJE DEL LÍMITE ALCANZADO POR CADA GAS
+# 4. PRIMERA PARADA DE LOS RESULTADOS: PORCENTAJE DEL LÍMITE POR GAS
 # ------------------------------------------------------------------------------
+# El primer gráfico ordena lo que encontramos en el recorrido: qué gas
+# quedó más cerca de su límite al final de la jornada.
 resumen_ord <- resumen %>% arrange(desc(porcentaje_limite))
 resumen_ord$gas <- factor(resumen_ord$gas, levels = rev(resumen_ord$gas))
 
@@ -110,8 +122,10 @@ p1 <- ggplot(resumen_ord, aes(x = gas, y = porcentaje_limite, fill = porcentaje_
     axis.title = element_text(face = "bold", size = 10)
   )
 
-# 5. GRÁFICA 2: MEDICIONES DURANTE LA JORNADA FRENTE AL LÍMITE
+# 5. SEGUIMOS EL RECORRIDO HORA A HORA: MEDICIONES DURANTE LA JORNADA
 # ------------------------------------------------------------------------------
+# El segundo gráfico vuelve a caminar el recorrido en sus tres momentos:
+# mañana, mediodía y tarde, gas por gas, frente a su valor límite.
 mediciones$momento <- factor(mediciones$momento,
                              levels = c("Mañana", "Mediodía", "Tarde"))
 
@@ -133,7 +147,7 @@ p2 <- ggplot(mediciones, aes(x = momento, y = concentracion_ppm, group = gas)) +
     axis.title = element_text(face = "bold", size = 10)
   )
 
-# 6. RENDERIZADO
+# 6. MIRAMOS LOS DOS RESÚMENES DEL RECORRIDO
 # ------------------------------------------------------------------------------
 print(p1)
 print(p2)
@@ -143,7 +157,8 @@ ggsave("gases_porcentaje_limite.png", plot = p1, width = 10, height = 6, dpi = 3
 ggsave("gases_mediciones.png", plot = p2, width = 10, height = 6, dpi = 300)
 
 # 8. INTERPRETACIÓN ---------------------------------------------------------
-# Gráfica 1 (porcentaje del límite): eje x, gas; eje y, porcentaje del
+# Al terminar el recorrido, los dos gráficos cuentan lo que respiramos
+# en la planta durante la jornada. Gráfica 1 (porcentaje del límite): eje x, gas; eje y, porcentaje del
 # valor límite (%, adimensional: es el cociente entre la concentración
 # medida y el límite, multiplicado por 100). La línea punteada en 100%
 # es el límite de la norma. Ningún gas rebasa el límite en promedio,
@@ -175,3 +190,7 @@ ggsave("gases_mediciones.png", plot = p2, width = 10, height = 6, dpi = 300)
 #   Cada gas se compara con el tipo de límite que le corresponde.
 # - Una tendencia que sube durante el turno es una señal de ventilación
 #   insuficiente, aunque ningún valor rebase el límite ese día.
+# Terminamos el recorrido en la salida de la planta con el detector en
+# la mano: ningún gas rebasó su límite en promedio, pero el monóxido
+# de carbono y el sulfuro de hidrógeno piden vigilar la ventilación
+# antes del siguiente turno.

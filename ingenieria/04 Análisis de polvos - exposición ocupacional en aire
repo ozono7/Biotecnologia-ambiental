@@ -9,13 +9,16 @@
 # Material académico para estudiantes
 # Serie: Biotecnología ambiental / Ingeniería - Análisis de polvos
 #
-# Descripción: Monitoreo de polvos en el aire de 4 áreas de trabajo con
-# muestreo gravimétrico (filtros pesados antes y después del muestreo).
-# Se midió la concentración de polvo en 3 días por área y se comparó
-# el promedio con el valor límite de exposición (VLE) de la
-# NOM-010-STPS-2014. Se distingue la fracción respirable (la que llega
-# a los pulmones) de la fracción inhalable (la que entra por nariz y
-# boca): cada una tiene su propio límite.
+# Descripción: Recorrido de monitoreo de polvos por 4 áreas de trabajo,
+# con muestreo gravimétrico (filtros pesados antes y después del
+# muestreo). Entramos por la molienda de muestras, seguimos al almacén
+# de reactivos, pasamos por el taller de mantenimiento y cerramos en la
+# preparación de muestras. En cada parada medimos la concentración de
+# polvo en 3 días de trabajo y comparamos el promedio con el valor
+# límite de exposición (VLE) de la NOM-010-STPS-2014. Se distingue la
+# fracción respirable (la que llega a los pulmones) de la fracción
+# inhalable (la que entra por nariz y boca): cada una tiene su propio
+# límite.
 #
 # Referencia normativa: NOM-010-STPS-2014, "Agentes químicos
 # contaminantes del ambiente laboral - Reconocimiento, evaluación y
@@ -31,12 +34,15 @@
 if (!require("pacman")) install.packages("pacman")
 pacman::p_load(ggplot2, dplyr)
 
-# 2. TABLA DE MEDICIONES
+# 2. LO QUE MEDIMOS EN CADA PARADA DEL RECORRIDO
 # ------------------------------------------------------------------------------
 # Concentraciones medidas por muestreo gravimétrico en 3 días de trabajo,
 # en miligramos por metro cúbico (mg/m3). Cada área se monitorea en la
 # fracción que le corresponde: respirable para sílice cristalina y para
 # partículas no especificadas en el almacén, inhalable en el taller.
+# En la molienda y en la preparación de muestras medimos sílice
+# cristalina respirable; en el almacén, partículas no especificadas
+# respirables; en el taller, partículas no especificadas inhalables.
 mediciones <- data.frame(
   area = rep(c("Molienda de muestras (sílice cristalina, respirable)",
                "Almacén de reactivos (partículas no especificadas, respirable)",
@@ -62,8 +68,11 @@ limites <- data.frame(
   stringsAsFactors = FALSE
 )
 
-# 3. PROMEDIO POR ÁREA Y PORCENTAJE DEL LÍMITE
+# 3. AL TERMINAR LOS 3 DÍAS DE RECORRIDO: PROMEDIO POR ÁREA Y PORCENTAJE DEL LÍMITE
 # ------------------------------------------------------------------------------
+# Con los tres días de recorrido completos, promediamos lo medido en
+# cada parada y lo comparamos con su límite: así vemos qué tan cerca
+# quedó cada área del VLE.
 resumen <- mediciones %>%
   group_by(area) %>%
   summarise(
@@ -84,8 +93,10 @@ cat(sprintf("\nÁrea más cercana al límite (promedio): %s, %.0f%% del VLE\n",
             resumen$area[which.max(resumen$porcentaje_limite)],
             max(resumen$porcentaje_limite)))
 
-# 4. GRÁFICA 1: PORCENTAJE DEL LÍMITE ALCANZADO POR ÁREA
+# 4. PRIMERA PARADA DE LOS RESULTADOS: PORCENTAJE DEL LÍMITE POR ÁREA
 # ------------------------------------------------------------------------------
+# El primer gráfico ordena lo que encontramos en el recorrido: qué área
+# quedó más cerca de su límite después de los 3 días de muestreo.
 resumen_ord <- resumen %>% arrange(desc(porcentaje_limite))
 resumen_ord$area <- factor(resumen_ord$area, levels = rev(resumen_ord$area))
 
@@ -111,8 +122,10 @@ p1 <- ggplot(resumen_ord, aes(x = area, y = porcentaje_limite, fill = porcentaje
     axis.title = element_text(face = "bold", size = 10)
   )
 
-# 5. GRÁFICA 2: MEDICIONES POR DÍA FRENTE AL LÍMITE
+# 5. SEGUIMOS EL RECORRIDO DÍA POR DÍA: MEDICIONES FRENTE AL LÍMITE
 # ------------------------------------------------------------------------------
+# El segundo gráfico vuelve a caminar el recorrido en sus tres días:
+# día 1, día 2 y día 3, área por área, frente a su valor límite.
 mediciones$dia <- factor(mediciones$dia, levels = c("Día 1", "Día 2", "Día 3"))
 
 p2 <- ggplot(mediciones, aes(x = dia, y = concentracion_mg_m3, group = area)) +
@@ -134,7 +147,7 @@ p2 <- ggplot(mediciones, aes(x = dia, y = concentracion_mg_m3, group = area)) +
     strip.text = element_text(size = 8)
   )
 
-# 6. RENDERIZADO
+# 6. MIRAMOS LOS DOS RESÚMENES DEL RECORRIDO
 # ------------------------------------------------------------------------------
 print(p1)
 print(p2)
@@ -144,7 +157,8 @@ ggsave("polvos_porcentaje_limite.png", plot = p1, width = 10, height = 6, dpi = 
 ggsave("polvos_mediciones.png", plot = p2, width = 10, height = 6, dpi = 300)
 
 # 8. INTERPRETACIÓN ---------------------------------------------------------
-# Gráfica 1 (porcentaje del límite): eje x, área y fracción de polvo;
+# Al terminar el recorrido, los dos gráficos cuentan lo que respiramos
+# en cada área durante los 3 días. Gráfica 1 (porcentaje del límite): eje x, área y fracción de polvo;
 # eje y, porcentaje del valor límite (%, adimensional: cociente entre
 # la concentración medida y el límite, por 100). La línea punteada en
 # 100% es el límite de la norma. Ninguna área rebasa el límite en
@@ -180,3 +194,7 @@ ggsave("polvos_mediciones.png", plot = p2, width = 10, height = 6, dpi = 300)
 # - El muestreo gravimétrico mide masa en el filtro: la concentración
 #   sale de dividir esa masa entre el volumen de aire muestreado, y
 #   de ahí se compara con el VLE.
+# Terminamos el recorrido en la preparación de muestras con los filtros
+# en la mano: ninguna área rebasó su límite en promedio, pero la
+# molienda y el almacén llegan a 80% y piden muestrear los días de
+# mayor trabajo.

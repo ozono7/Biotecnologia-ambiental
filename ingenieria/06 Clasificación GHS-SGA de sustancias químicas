@@ -9,14 +9,15 @@
 # Material académico para estudiantes
 # Serie: Biotecnología ambiental / Ingeniería - Clasificación GHS/SGA
 #
-# Descripción: Clasificación de 8 sustancias de uso común en el
-# laboratorio según el Sistema Globalmente Armonizado de Clasificación
-# y Etiquetado de Productos Químicos (SGA/GHS). Para cada sustancia se
-# registran sus pictogramas, sus frases de peligro (frases H) y su
-# palabra de advertencia, tomados de su hoja de datos de seguridad.
-# El conteo de pictogramas y de frases H sale de la tabla: así se ve
-# qué peligros se repiten en el laboratorio y qué sustancias acumulan
-# más advertencias.
+# Descripción: Recorrido por el almacén de reactivos y las mesas del
+# laboratorio, frasco por frasco. Tomamos 8 sustancias de uso común en
+# el laboratorio y leemos su etiqueta y su hoja de datos de seguridad
+# (sección 2), según el Sistema Globalmente Armonizado de
+# Clasificación y Etiquetado de Productos Químicos (SGA/GHS). Para
+# cada sustancia registramos sus pictogramas, sus frases de peligro
+# (frases H) y su palabra de advertencia. El conteo de pictogramas y
+# de frases H sale de la tabla: así se ve qué peligros se repiten en
+# el laboratorio y qué sustancias acumulan más advertencias.
 #
 # Referencia: Sistema Globalmente Armonizado de Clasificación y
 # Etiquetado de Productos Químicos (SGA/GHS), Naciones Unidas, y su
@@ -33,11 +34,14 @@
 if (!require("pacman")) install.packages("pacman")
 pacman::p_load(ggplot2, dplyr)
 
-# 2. TABLA DE SUSTANCIAS Y SU CLASIFICACIÓN GHS
+# 2. LO QUE LEEMOS EN CADA FRASCO DEL RECORRIDO
 # ------------------------------------------------------------------------------
-# Pictogramas y frases H separados por "; ". La palabra de advertencia
-# es "Peligro" para las 8 sustancias: todas tienen al menos un peligro
-# de categoría 1 o 2.
+# Empezamos por el estante de solventes: metanol, acetona, tolueno y
+# etanol. Seguimos a los corrosivos: ácido sulfúrico concentrado,
+# hidróxido de sodio e hipoclorito de sodio. Y cerramos con el
+# formaldehído. Pictogramas y frases H separados por "; ". La palabra
+# de advertencia es "Peligro" para las 8 sustancias: todas tienen al
+# menos un peligro de categoría 1 o 2.
 sustancias <- data.frame(
   sustancia = c(
     "Metanol",
@@ -87,8 +91,12 @@ sustancias <- data.frame(
 # provocar daños en los órganos tras exposiciones prolongadas o
 # repetidas; H400 muy tóxico para los organismos acuáticos.
 
-# 3. CONTEOS A PARTIR DE LA TABLA
+# 3. AL TERMINAR EL RECORRIDO CONTAMOS LO LEÍDO
 # ------------------------------------------------------------------------------
+# Con los 8 frascos revisados, contamos lo que trae cada etiqueta:
+# número de pictogramas y de frases H por sustancia, y cuántas
+# sustancias llevan cada pictograma. Los conteos salen de la tabla,
+# no se escriben a mano.
 # Número de pictogramas y de frases H por sustancia, contados desde las
 # columnas de texto.
 sustancias <- sustancias %>%
@@ -114,8 +122,10 @@ cat(sprintf("\nTotal de pictogramas en las 8 sustancias: %d\n",
 cat(sprintf("Total de frases H en las 8 sustancias: %d (promedio de %.1f por sustancia)\n",
             sum(sustancias$n_frases_h), mean(sustancias$n_frases_h)))
 
-# 4. GRÁFICA 1: SUSTANCIAS POR PICTOGRAMA GHS
+# 4. PRIMERA PARADA DE LOS RESULTADOS: SUSTANCIAS POR PICTOGRAMA GHS
 # ------------------------------------------------------------------------------
+# El primer gráfico resume el estante completo: qué pictogramas
+# aparecen en las etiquetas que leímos y en cuántas sustancias.
 p1 <- ggplot(conteo_pictogramas, aes(x = reorder(pictograma, n), y = n, fill = pictograma)) +
   geom_col(width = 0.6, show.legend = FALSE) +
   geom_text(aes(label = n), hjust = -0.3, fontface = "bold", size = 4) +
@@ -136,8 +146,10 @@ p1 <- ggplot(conteo_pictogramas, aes(x = reorder(pictograma, n), y = n, fill = p
     axis.title = element_text(face = "bold", size = 10)
   )
 
-# 5. GRÁFICA 2: FRASES H POR SUSTANCIA
+# 5. SEGUIMOS FRASCO POR FRASCO: FRASES H POR SUSTANCIA
 # ------------------------------------------------------------------------------
+# El segundo gráfico vuelve a pasar por los 8 frascos y cuenta cuántas
+# frases de peligro trae cada uno.
 sust_ord <- sustancias %>% arrange(desc(n_frases_h))
 sust_ord$sustancia <- factor(sust_ord$sustancia, levels = rev(sust_ord$sustancia))
 
@@ -159,7 +171,7 @@ p2 <- ggplot(sust_ord, aes(x = sustancia, y = n_frases_h, fill = n_frases_h)) +
     axis.title = element_text(face = "bold", size = 10)
   )
 
-# 6. RENDERIZADO
+# 6. MIRAMOS LOS DOS RESÚMENES DEL RECORRIDO
 # ------------------------------------------------------------------------------
 print(p1)
 print(p2)
@@ -169,7 +181,8 @@ ggsave("ghs_pictogramas.png", plot = p1, width = 10, height = 6, dpi = 300)
 ggsave("ghs_frases_h.png", plot = p2, width = 10, height = 6, dpi = 300)
 
 # 8. INTERPRETACIÓN ---------------------------------------------------------
-# Gráfica 1 (por pictograma): eje x, pictograma GHS; eje y, número de
+# Al terminar el recorrido por el estante, los dos gráficos cuentan lo
+# que dicen las etiquetas. Gráfica 1 (por pictograma): eje x, pictograma GHS; eje y, número de
 # sustancias que lo llevan (conteo, adimensional; una sustancia puede
 # llevar varios pictogramas, por eso la suma es mayor que 8). En total
 # hay 17 pictogramas repartidos en las 8 sustancias. Los más frecuentes
@@ -206,3 +219,6 @@ ggsave("ghs_frases_h.png", plot = p2, width = 10, height = 6, dpi = 300)
 # - La clasificación GHS se toma de la hoja de datos de seguridad de
 #   cada sustancia, no de memoria: la etiqueta del frasco debe
 #   coincidir con la sección 2 de su hoja.
+# Terminamos el recorrido dejando los 8 frascos en su lugar, con su
+# etiqueta a la vista: dominan la inflamabilidad y la corrosión, y el
+# formaldehído es la sustancia con más peligros acumulados.

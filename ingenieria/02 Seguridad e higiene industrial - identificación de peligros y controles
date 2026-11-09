@@ -9,14 +9,18 @@
 # Material académico para estudiantes
 # Serie: Biotecnología ambiental / Ingeniería - Seguridad e higiene industrial
 #
-# Descripción: Recorrido de inspección en un laboratorio de biotecnología
-# ambiental y planta piloto. Se registran los peligros encontrados por
-# tipo, se les asigna una medida de control según la jerarquía de
-# controles (eliminación, sustitución, controles de ingeniería,
-# controles administrativos y equipo de protección personal) y se
-# cuenta cuántos peligros hay de cada tipo y cuántos controles de cada
-# nivel. La jerarquía manda: primero se elimina o se sustituye el
-# peligro, y el equipo de protección personal es el último recurso.
+# Descripción: Recorrido de inspección por un laboratorio de
+# biotecnología ambiental y su planta piloto. Entramos por el
+# laboratorio de análisis y de extracciones, seguimos al almacén de
+# reactivos, pasamos por la planta de tratamiento y la planta piloto y
+# cerramos en el área de microscopía. En cada parada anotamos el
+# peligro que encontramos, decimos de qué tipo es y le asignamos una
+# medida de control según la jerarquía de controles (eliminación,
+# sustitución, controles de ingeniería, controles administrativos y
+# equipo de protección personal). Al final contamos cuántos peligros
+# hay de cada tipo y cuántos controles de cada nivel. La jerarquía
+# manda: primero se elimina o se sustituye el peligro, y el equipo de
+# protección personal es el último recurso.
 #
 # Referencia: jerarquía de controles de la NOM-030-STPS-2009 (servicios
 # preventivos de seguridad y salud en el trabajo) y del sistema de
@@ -30,9 +34,17 @@
 if (!require("pacman")) install.packages("pacman")
 pacman::p_load(ggplot2, dplyr)
 
-# 2. TABLA DE HALLAZGOS DE LA INSPECCIÓN
+# 2. LO QUE VAMOS ANOTANDO EN CADA PARADA DEL RECORRIDO
 # ------------------------------------------------------------------------------
-# Cada fila es un peligro encontrado en el recorrido. La columna control
+# Cada fila es un peligro encontrado en el recorrido, con su tipo y la
+# medida de control que le toca. Empezamos en el laboratorio: la campana
+# sin extracción, los solventes sin etiquetar, la falta de lavaojos, el
+# hipoclorito sin equipo de protección, los derrames sin kit y la
+# limpieza con thinner. Seguimos al almacén de reactivos, donde la luz
+# es deficiente; en la planta de tratamiento escuchamos el compresor y
+# vemos los lodos en contenedor abierto y el cableado junto a la toma
+# de agua; en la planta piloto, el agitador sin guarda; y cerramos con
+# la postura en microscopía y la carga de garrafones. La columna control
 # indica el nivel de la jerarquía de controles que se aplica.
 hallazgos <- data.frame(
   hallazgo = c(
@@ -78,8 +90,10 @@ hallazgos <- data.frame(
   stringsAsFactors = FALSE
 )
 
-# 3. CONTEOS A PARTIR DE LA TABLA
+# 3. AL TERMINAR EL RECORRIDO CONTAMOS LOS HALLAZGOS
 # ------------------------------------------------------------------------------
+# Con el recorrido terminado, contamos lo anotado: cuántos peligros de
+# cada tipo encontramos y cuántos controles de cada nivel de la jerarquía.
 conteo_tipo <- hallazgos %>%
   count(tipo, name = "n") %>%
   arrange(desc(n))
@@ -103,8 +117,10 @@ cat(sprintf("\nTotal de hallazgos: %d\n", nrow(hallazgos)))
 cat(sprintf("Controles altos de la jerarquía (eliminación, sustitución, ingeniería): %d de %d (%.1f%%)\n",
             n_altos, nrow(hallazgos), pct_altos))
 
-# 4. GRÁFICA 1: HALLAZGOS POR TIPO DE PELIGRO
+# 4. PRIMERA PARADA DE LOS RESULTADOS: HALLAZGOS POR TIPO DE PELIGRO
 # ------------------------------------------------------------------------------
+# El primer gráfico resume dónde estuvo el problema durante el recorrido:
+# qué tipo de peligro apareció más veces.
 p1 <- ggplot(conteo_tipo, aes(x = reorder(tipo, n), y = n, fill = tipo)) +
   geom_col(width = 0.6, show.legend = FALSE) +
   geom_text(aes(label = n), hjust = -0.3, fontface = "bold", size = 4) +
@@ -124,8 +140,10 @@ p1 <- ggplot(conteo_tipo, aes(x = reorder(tipo, n), y = n, fill = tipo)) +
     axis.title = element_text(face = "bold", size = 10)
   )
 
-# 5. GRÁFICA 2: HALLAZGOS POR NIVEL DE LA JERARQUÍA DE CONTROLES
+# 5. SEGUIMOS: HALLAZGOS POR NIVEL DE LA JERARQUÍA DE CONTROLES
 # ------------------------------------------------------------------------------
+# El segundo gráfico dice cómo se controla cada peligro encontrado: de
+# los niveles más eficaces de la jerarquía a los menos eficaces.
 p2 <- ggplot(conteo_control, aes(x = control, y = n, fill = control)) +
   geom_col(width = 0.6, show.legend = FALSE) +
   geom_text(aes(label = n), vjust = -0.5, fontface = "bold", size = 4) +
@@ -144,7 +162,7 @@ p2 <- ggplot(conteo_control, aes(x = control, y = n, fill = control)) +
     axis.title = element_text(face = "bold", size = 10)
   )
 
-# 6. RENDERIZADO
+# 6. MIRAMOS LOS DOS RESÚMENES DEL RECORRIDO
 # ------------------------------------------------------------------------------
 print(p1)
 print(p2)
@@ -154,6 +172,7 @@ ggsave("seguridad_tipo_peligro.png", plot = p1, width = 10, height = 6, dpi = 30
 ggsave("seguridad_jerarquia_controles.png", plot = p2, width = 10, height = 6, dpi = 300)
 
 # 8. INTERPRETACIÓN ---------------------------------------------------------
+# Al terminar el recorrido, los dos gráficos cuentan lo que encontramos.
 # Gráfica 1 (por tipo): eje x, tipo de peligro; eje y, número de
 # hallazgos (conteo, adimensional). La inspección encontró 13 peligros:
 # 6 químicos, 2 físicos, 2 ergonómicos, 1 biológico, 1 mecánico y
@@ -188,3 +207,5 @@ ggsave("seguridad_jerarquia_controles.png", plot = p2, width = 10, height = 6, d
 #   pequeño y se controla de todos modos.
 # - Un solo hallazgo puede cambiar de nivel: el thinner se controlaba
 #   con EPP y se resolvió mejor sustituyéndolo por detergente acuoso.
+# Terminamos el recorrido con la lista de 13 hallazgos y su control
+# asignado: la mayoría se controla en la fuente, no en la persona.

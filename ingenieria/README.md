@@ -1,5 +1,13 @@
 # Ingeniería
 
+## Formato: recorrido por la planta
+
+Cada lección se presenta como un recorrido por la planta industrial:
+se entra por un área o equipo, en cada parada se comenta qué se está
+haciendo, se mide y se analiza con los datos, y se da la interpretación
+de cada resultado antes de seguir al siguiente equipo o área. El
+recorrido se cierra con lo aprendido al terminar la visita.
+
 Seguridad industrial, higiene y respuesta a emergencias en laboratorio
 y planta. Cada lección es un script de R independiente y documentado:
 ábrelo en R o RStudio y ejecútalo completo. Los datos van primero como
