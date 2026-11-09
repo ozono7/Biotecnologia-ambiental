@@ -1,6 +1,16 @@
-# ==============================================================================
-# PLANTA DE PROCESADOS CÁRNICOS
-# ==============================================================================
+# ==========================================================================
+# Planta de procesados cárnicos
+# ==========================================================================
+# Autor: Dr. José Juan Torres Martínez
+# Docente de Ciencias Químicas
+# Universidad Autónoma de San Luis Potosí (UASLP)
+# México
+#
+# Material académico para estudiantes
+#
+# Descripción: Simulación del tratamiento de aguas residuales de una planta de procesados cárnicos.
+# ==========================================================================
+
 
 # 1. PREPARACIÓN DE ENTORNO
 # ------------------------------------------------------------------------------

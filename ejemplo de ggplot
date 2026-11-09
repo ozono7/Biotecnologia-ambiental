@@ -1,3 +1,17 @@
+# ==========================================================================
+# Ejemplo de gráfico con ggplot2
+# ==========================================================================
+# Autor: Dr. José Juan Torres Martínez
+# Docente de Ciencias Químicas
+# Universidad Autónoma de San Luis Potosí (UASLP)
+# México
+#
+# Material académico para estudiantes
+#
+# Descripción: Ejemplo básico de creación de gráficos con ggplot2 en R.
+# ==========================================================================
+
+
 # 1. Cargar la librería
 install.packages("ggplo2")
 

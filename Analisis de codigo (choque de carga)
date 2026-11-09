@@ -1,3 +1,17 @@
+# ==========================================================================
+# Análisis de choque de carga en tratamiento de aguas residuales
+# ==========================================================================
+# Autor: Dr. José Juan Torres Martínez
+# Docente de Ciencias Químicas
+# Universidad Autónoma de San Luis Potosí (UASLP)
+# México
+#
+# Material académico para estudiantes
+#
+# Descripción: Simulación del efecto de un choque de carga sobre un sistema de tratamiento biológico.
+# ==========================================================================
+
+
 # 1. PARÁMETROS DEL MODELO ------------------------------------------------
 library(ggplot2)
 
