@@ -35,7 +35,7 @@ X  <- 5.5        # Concentración de sólidos en el licor mezcla (kg/m3)
 v0 <- 140        # Velocidad máxima de sedimentación teórica (m/d)
 k  <- 0.25       # Coeficiente de compactación del lodo (m3/kg)
 
-# Cálculos (usar esta nomenclatura para que los graficos funcionen)
+# Cálculos
 OR  <- Q / A                    # Tasa de desbordamiento (m/d)
 u   <- Qr / A                   # Velocidad del flujo inferior o succión (m/d)
 Gi  <- OR * X                   # Flujo de sólidos hacia el efluente (kg/m2-d)
