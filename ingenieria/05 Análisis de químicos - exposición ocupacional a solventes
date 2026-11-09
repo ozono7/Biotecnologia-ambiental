@@ -22,10 +22,7 @@
 # Referencia normativa: NOM-010-STPS-2014, "Agentes químicos
 # contaminantes del ambiente laboral - Reconocimiento, evaluación y
 # control" (DOF 24-10-2014), Apéndice I. VLE-PPT (8 h): tolueno
-# 20 ppm, xileno 100 ppm, acetona 500 ppm, metanol 200 ppm. El
-# análisis químico cuantitativo (curvas de calibración, HPLC) se
-# trabaja en el repositorio aprende-R; aquí el tema es el monitoreo
-# de la exposición en el aire del laboratorio.
+# 20 ppm, xileno 100 ppm, acetona 500 ppm, metanol 200 ppm.
 # ==========================================================================
 
 
