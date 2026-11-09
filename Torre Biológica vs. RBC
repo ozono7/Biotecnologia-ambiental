@@ -1,14 +1,16 @@
 # ==========================================================================
 # Torre biológica vs. RBC
 # ==========================================================================
-# Autor: José Juan Torres Martínez
-# Institución: Universidad Autónoma de San Luis Potosí (UASLP)
-# Doctorado en Ciencias en Bioprocesos
-# Laboratorio de Biotecnología Molecular de Células Vegetales y Bioinformática
+# Autor: Dr. José Juan Torres Martínez
+# Docente de Ciencias Químicas
+# Universidad Autónoma de San Luis Potosí (UASLP)
+# México
+#
 # Material académico para estudiantes
 #
 # Descripción: Comparación geométrica de dos alternativas de biopelícula aerobia (torre biológica y contactor biológico rotativo) para el tratamiento de aguas residuales.
 # ==========================================================================
+
 
 # 1. Torre Biológica (Filtro de percolación de alta tasa): Utilizando módulos 
 # de plástico corrugado con un área superficial específica (a) de 200 m²/m³ 
